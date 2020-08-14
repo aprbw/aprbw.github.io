@@ -9,7 +9,7 @@ _actualFPS=-1;
 
 var _PM_Gameloop = function(){
     while(1){
-    if(_isNotPaused<=0){
+    if(_isNotPaused<0){
         requestAnimationFrame(_PM_Gameloop);
 //         return;
     }
