@@ -67,6 +67,7 @@ Kotak.prototype.massChange=function(am){
 }
 Kotak.prototype.gambar=function (){
 // 	c.strokeRect(this.x-this.hs, this.y-this.hs, this.s, this.s);
+	c.moveTo(this.x,this.y);
 	c.arc(this.x,this.y,this.hs,0,2*Math.PI);
 }
 Kotak.prototype.intializeForces=function (){
@@ -154,6 +155,7 @@ var factoryKotak= new function(){
 		});
 	}
 	this.gambar=function(){
+		c.beginPath();
 		c.fillStyle="black";
 		this.container.forEach(function(akk){
 			akk.gambar();
