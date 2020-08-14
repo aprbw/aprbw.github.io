@@ -14,15 +14,12 @@ var _PM_Gameloop = function(){
         if(_isNotPaused<0){
             requestAnimationFrame(_PM_Gameloop);
     //         return;
-            console.log("is Paused")
         }
         _currentFrame_timestamp=_timestamp();
         var deltaTime = _timestamp()-_lastFrame_timestamp;
-        console.log(" "+_iloop+" b " + deltaTime + " < " + _TIMESTEP)
         if(deltaTime<_TIMESTEP){
     //         _PM_Gameloop();
     //         return;
-            console.log(" "+_iloop+" c")
             continue;
         }
         console.log("d")
