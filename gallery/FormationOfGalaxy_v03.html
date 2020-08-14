@@ -66,7 +66,8 @@ Kotak.prototype.massChange=function(am){
 	this.h=this.s; //height
 }
 Kotak.prototype.gambar=function (){
-	c.strokeRect(this.x-this.hs, this.y-this.hs, this.s, this.s);
+// 	c.strokeRect(this.x-this.hs, this.y-this.hs, this.s, this.s);
+	c.arc(this.x,this.y,this.hs,0,2*Math.PI);
 }
 Kotak.prototype.intializeForces=function (){
 	this.fx = 0;
