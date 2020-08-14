@@ -48,7 +48,7 @@ Powerdot.prototype.renderPowerdot=function(){
 	px=_scaler(this.gx*_UNIT+_powerdotOffset,_OFFSET_X);
 	py=_scaler(this.gy*_UNIT+_powerdotOffset,_OFFSET_Y);
 	_canvasCtx.moveTo(px,py);
-	ps=;
+// 	ps=;
 	_canvasCtx.arc(px,py,_SCALE*_POWERDOT_SIZE/2,0,2*Math.PI);
 	//console.log(px,py);
 }
