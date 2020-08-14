@@ -12,14 +12,18 @@ var _PM_Gameloop = function(){
     if(_isNotPaused<0){
         requestAnimationFrame(_PM_Gameloop);
 //         return;
+        console.log("a")
     }
     _currentFrame_timestamp=_timestamp();
     var deltaTime = _timestamp()-_lastFrame_timestamp;
+    console.log("b" + deltaTime)
     if(deltaTime<_TIMESTEP){
 //         _PM_Gameloop();
 //         return;
+        console.log("c")
         continue;
     }
+    console.log("d")
     requestAnimationFrame(_PM_Gameloop);
     _canvasElmnt.width = _CANVAS_WIDTH;
     _frameCount++;
