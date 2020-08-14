@@ -10,7 +10,7 @@ var _PM_Gameloop = function(){
     while (1){
         if(_isNotPaused<=0){
             requestAnimationFrame(_PM_Gameloop);
-            continue;
+//             continue;
         }
         _currentFrame_timestamp=_timestamp();
         var deltaTime = _timestamp()-_lastFrame_timestamp;
