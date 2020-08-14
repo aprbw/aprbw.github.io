@@ -14,13 +14,13 @@ var _PM_Gameloop = function(){
     }
     _currentFrame_timestamp=_timestamp();
     var deltaTime = _timestamp()-_lastFrame_timestamp;
-//     while(deltaTime < _TIMESTEP){
-//         deltaTime = _timestamp()-_lastFrame_timestamp;
-//     }
-    if(deltaTime<_TIMESTEP){
-        _PM_Gameloop();
-        return;
+    while(deltaTime < _TIMESTEP){
+        deltaTime = _timestamp()-_lastFrame_timestamp;
     }
+//     if(deltaTime<_TIMESTEP){
+//         _PM_Gameloop();
+//         return;
+//     }
     requestAnimationFrame(_PM_Gameloop);
     _canvasElmnt.width = _CANVAS_WIDTH;
     _frameCount++;
