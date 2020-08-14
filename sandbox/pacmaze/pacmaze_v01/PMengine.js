@@ -18,11 +18,11 @@ var _PM_Gameloop = function(){
     }
     _currentFrame_timestamp=_timestamp();
     var deltaTime = _timestamp()-_lastFrame_timestamp;
-    console.log("b" + deltaTime)
+    console.log(" "+_iloop+" b " + deltaTime)
     if(deltaTime<_TIMESTEP){
 //         _PM_Gameloop();
 //         return;
-        console.log("c")
+        console.log(" "+_iloop+"c")
         continue;
     }
     console.log("d")
