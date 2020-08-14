@@ -18,6 +18,7 @@ var _PM_Gameloop = function(){
 //             _PM_Gameloop();
             continue;
         }
+        break;
         requestAnimationFrame(_PM_Gameloop);
         _canvasElmnt.width = _CANVAS_WIDTH;
         _frameCount++;
