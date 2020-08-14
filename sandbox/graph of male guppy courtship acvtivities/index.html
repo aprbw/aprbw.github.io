@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<!-- By Beatrice Bernardo and Arian Prabowo -->
+<title id="title">Force Directed Graph of Male Guppy Courtship Activities</title>
+<head> </head>
+<body>
+	<h1>Force Directed Graph of Male Guppy Courtship Activities</h1>
+	<p><i>Arian Prabowo</i></p>
+
+<p>This page visualizes the graph of male guppy courtship activities as described in the figure 4 of the study by Baerends et al., 1995 using forced directed graphing (Kamada and Kawai, 1989). The internodal force is calculated using 12-6 Lennard-Jones potential (Jones, 1924). The table below contains the data from where the graph is based. To make the graph undirectional, the weights from both directions are added linearly.</p>
+
+<div id="matrixTable">b</div>
+
+<h2>References</h2>
+<p>Baerends, G. P., Brouwer, R., & Waterbolk, H. T. J. (1955). Ethological studies on Lebistes reticulatus (Peters). Behaviour, 8(1), 249-332.</p>
+<p>Jones, J. E. (1924). On the determination of molecular fields. In Proceedings of the Royal Society of London A: Mathematical, Physical and Engineering Sciences (Vol. 106, No. 738). The Royal Society.</p>
+<p>Kamada, T., Kawai, S. (1989). An algorithm for drawing general undirected graphs. Information Processing Letters</p>
+
+<canvas id="canvas" width="800" height="600" style="border:1px dotted grey; background-color:black">
+	Your browser does not support HTML5 canvas. So sad...
+</canvas>
+
+<script>
+	var divMatrixTable = document.getElementById("matrixTable");
+	divMatrixTable.textContent="a";
+</script>
+
+</body>
+</html>
