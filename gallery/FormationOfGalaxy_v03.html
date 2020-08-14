@@ -178,7 +178,7 @@ var factoryKotak= new function(){
 console.log("~BoxSys : GAME:init");
 function gameInit(ac){
 	while(factoryKotak.length>0){
-		factoryKotak.removeThis[factoryKotak.container[0]]
+		factoryKotak.removeThis(factoryKotak.container[0])
 	}
 	for(ck=0;ck<ac;ck++){
 		factoryKotak.buatSatu();
@@ -186,7 +186,7 @@ function gameInit(ac){
 }
 function gameInit_2(){
 	while(factoryKotak.length>0){
-		factoryKotak.removeThis[factoryKotak.container[0]]
+		factoryKotak.removeThis(factoryKotak.container[0])
 	}
 	factoryKotak.buatSatu();
 	factoryKotak.buatSatu();
@@ -195,11 +195,13 @@ function gameInit_2(){
 	factoryKotak.container[0].vx = 0
 	factoryKotak.container[0].vy = 20
 	factoryKotak.container[0].m = 1000
+	factoryKotak.container[0].s=Math.sqrt(1000) 
 	factoryKotak.container[1].x = 4100
 	factoryKotak.container[1].y = 2000
 	factoryKotak.container[1].vx = 0
 	factoryKotak.container[1].vy = -20
 	factoryKotak.container[1].m = 1000
+	factoryKotak.container[1].s=Math.sqrt(1000) 
 }
 console.log("~BoxSys : GAME:loop");
 function appLoop(){
