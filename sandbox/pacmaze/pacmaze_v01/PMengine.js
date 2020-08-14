@@ -6,9 +6,11 @@ _lastFrame_timestamp=_currentFrame_timestamp;
 _frameCount=0;
 _actualFPS=-1;
 
+_iloop = 1000
 
 var _PM_Gameloop = function(){
-    while(1){
+    while(_iloop>0){
+        _iloop--
     if(_isNotPaused<0){
         requestAnimationFrame(_PM_Gameloop);
 //         return;
