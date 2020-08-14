@@ -27,7 +27,7 @@
 	var intBoxDefaultMass =1;
 	var intTargetDelta = 30;
 	var intMaxVelocity = 20;
-	var strWallType = "a";
+	var strWallType = "PORTAL";
 	var intInitialKotakCount = 1234;
 	var fps="not yet defined";
 	var delta="not yet defined";
@@ -135,7 +135,12 @@ var factoryKotak= new function(){
 	this.mechanicKKI=function(){
 		for(ck1=0;ck1<this.container.length;ck1++){
 			for(ck2=ck1+1;ck2<this.container.length;ck2++){
-				var r=kkInteractionRsquared(this.container[ck1],this.container[ck2]);
+				var r=0.0;
+				if(strWallType=="PORTAL"){
+					r=kkInteractionRsquaredTorus(this.container[ck1],this.container[ck2]);
+				}else{
+					r=kkInteractionRsquared(this.container[ck1],this.container[ck2]);
+				}
 				kkInteractionGravity(r,this.container[ck1],this.container[ck2]);
 				kkInteractionInelasticCollision(r,this.container[ck1],this.container[ck2]);
 			}
@@ -231,6 +236,13 @@ function quadGravity(ak, ax,ay){
 }
 function kkInteractionRsquared(ak1,ak2){
 	return (ak1.x-ak2.x)*(ak1.x-ak2.x)+(ak1.y-ak2.y)*(ak1.y-ak2.y);
+}		
+function kkInteractionRsquaredTorus(ak1,ak2){
+	var r2x =Math.min(Math.abs(ak1.x-ak2.x),cnvs.width-Math.abs(ak1.x-ak2.x));
+	r2x = Math.pow(r2x,2);
+	var r2y =Math.min(Math.abs(ak1.y-ak2.y),cnvs.height-Math.abs(ak1.y-ak2.y));
+	r2y = Math.pow(r2y,2);
+	return r2x+r2y;
 }
 function kkInteractionGravity(r,ak1, ak2){
 	//eConst <= 0 means attractive force
@@ -256,24 +268,4 @@ function kkInteractionInelasticCollision(r,ak1, ak2){
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
