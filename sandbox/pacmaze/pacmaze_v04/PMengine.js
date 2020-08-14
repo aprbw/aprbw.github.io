@@ -7,35 +7,37 @@ _frameCount=0;
 _actualFPS=-1;
 
 var _PM_Gameloop = function(){
-    if(_isNotPaused<=0){
+    while (1){
+        if(_isNotPaused<=0){
+            requestAnimationFrame(_PM_Gameloop);
+            continue;
+        }
+        _currentFrame_timestamp=_timestamp();
+        var deltaTime = _timestamp()-_lastFrame_timestamp;
+        if(deltaTime<_TIMESTEP){
+//             _PM_Gameloop();
+            continue;
+        }
         requestAnimationFrame(_PM_Gameloop);
-        return;
-    }
-    _currentFrame_timestamp=_timestamp();
-    var deltaTime = _timestamp()-_lastFrame_timestamp;
-    if(deltaTime<_TIMESTEP){
-        _PM_Gameloop();
-        return;
-    }
-    requestAnimationFrame(_PM_Gameloop);
-    _canvasElmnt.width = _CANVAS_WIDTH;
-    _frameCount++;
-    _lastFrame_timestamp=_timestamp();
-    _actualFPS=1000/deltaTime;
+        _canvasElmnt.width = _CANVAS_WIDTH;
+        _frameCount++;
+        _lastFrame_timestamp=_timestamp();
+        _actualFPS=1000/deltaTime;
 
-    //on frame calls
-    onFrameInputSpam();
-    _MAZE.renderMaze();
-    PacdotFactory.onFrame();
-    _paku.onFrame();
-    CharacterContainer.onFrame();
-    forceCameraFollow();
+        //on frame calls
+        onFrameInputSpam();
+        _MAZE.renderMaze();
+        PacdotFactory.onFrame();
+        _paku.onFrame();
+        CharacterContainer.onFrame();
+        forceCameraFollow();
 
-    document.getElementById("display").textContent=""
-        +Math.round(_actualFPS)+" "
-        +_frameCount+" "
-        +"life: "+_paku.life
-        +"";
+        document.getElementById("display").textContent=""
+            +Math.round(_actualFPS)+" "
+            +_frameCount+" "
+            +"life: "+_paku.life
+            +"";
+    }
     return;
 }
 
