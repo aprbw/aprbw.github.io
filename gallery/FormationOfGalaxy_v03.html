@@ -154,9 +154,11 @@ var factoryKotak= new function(){
 		});
 	}
 	this.gambar=function(){
+		c.fillStyle="black";
 		this.container.forEach(function(akk){
 			akk.gambar();
 		});
+		c.fill();
 	}
 	this.removeThis=function(ak){
 		for(ck=0;ck<this.container.length;ck++){
@@ -250,8 +252,8 @@ function kkInteractionGravity(r,ak1, ak2){
 	var eConst = -0.1;
 	eConst*=ak1.m*ak2.m;
 // 	var r = (ak1.x-ak2.x)*(ak1.x-ak2.x)+(ak1.y-ak2.y)*(ak1.y-ak2.y);
-	var x_sign = 1
-	var y_sign = 1
+	var x_sign = 1;
+	var y_sign = 1;
 	if(strWallType=="PORTAL"){
 		x_sign = (Math.abs(ak1.x-ak2.x)<cnvs.width/2)? 1:-1;
 		y_sign = (Math.abs(ak1.y-ak2.y)<cnvs.height/2)? 1:-1;
