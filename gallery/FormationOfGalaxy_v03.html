@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<title>
+	Formation of Galaxy v03 by Arian Prabowo
+</title>
+<head>
+</head>
+<body>
+	<p>a.k.a. box05</p>
+	<p>zoom out to 25%</p>
+	<p>WallType = annihilation, meaning that the particles that hit the wall will be annihilated.</p>
+	<p>Next Step: WallType = PORTAL, meaning that the walls are portal to the other side i.e. Left to Right, Top to Bottom.
+	(May be color the boxes as well, or make them circular, which is how the mechanic is treating them).</p>
+	<p>Problems with PORTAL:<br>
+		1. particle count will dwindle slowly<br>
+		2. the universe will adopt a toroid topography, meaning no center. Thus, it will take a lot more time
+		for the 'galaxies' to develop, but will provide a more realistic simulation<br>
+		3. The forces will have to be adapted for toroid topography, which require some recoding and more complicated maths.
+	</p>
+	<canvas id="canvasHTML" width="5400" height="2500" style="border:10px solid #d3d3d3;">
+		Your browser does not support the HTML5 canvas tag.
+	</canvas>
+	<script>
+
+	console.log("~BoxSys : INIT:constant");
+	var intBoxDefaultV = 3;
+	var intBoxDefaultMass =1;
+	var intTargetDelta = 30;
+	var intMaxVelocity = 20;
+	var strWallType = "a";
+	var intInitialKotakCount = 1234;
+	var fps="not yet defined";
+	var delta="not yet defined";
+
+	console.log("~BoxSys : INIT:environment");
+	requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.oRequestAnimationFrame;
+	var cnvs = document.getElementById("canvasHTML");
+	//cnvs.width=800;
+	//cnvs.height=600;
+	var c=cnvs.getContext("2d");
+	var lastCalledTime= new Date().getTime();
+
+	console.log("~BoxSys : INIT:class");
+//KOTAK
+function Kotak(){
+	this.sn;
+	this.x=Math.random()*cnvs.width;
+	this.y=Math.random()*cnvs.height;
+	this.m=intBoxDefaultMass; //mass
+	this.s=Math.sqrt(this.m) //sides lengths
+	this.hs = this.s/2;
+	this.w=this.s; //width
+	this.h=this.s; //height
+	this.vx=(Math.random()*2-1)*intBoxDefaultV;
+	this.vy=(Math.random()*2-1)*intBoxDefaultV;
+	this.fx=0;
+	this.fy=0;
+	this.ax=0;
+	this.ay=0;
+}
+Kotak.prototype.massChange=function(am){
+	this.m=am; //mass
+	this.s=Math.sqrt(this.m) //sides lengths
+	this.hs = this.s/2;
+	this.w=this.s; //width
+	this.h=this.s; //height
+}
+Kotak.prototype.gambar=function (){
+	c.strokeRect(this.x-this.hs, this.y-this.hs, this.s, this.s);
+}
+Kotak.prototype.intializeForces=function (){
+	this.fx = 0;
+	this.fy = 0;
+}
+Kotak.prototype.calcGlobalForce=function (){
+	//down(this);
+	//brownian(this);
+	//airFriction(this);
+	//quadGravity(this,cnvs.width*2/3,cnvs.height*2/3);
+	//quadGravity(this,cnvs.width/3,cnvs.height/2);
+}
+Kotak.prototype.gerak=function (){
+	this.ax=this.fx/this.m;
+	this.ay=this.fy/this.m;
+	this.vx+=this.ax;
+	this.vy+=this.ay;
+	var vr = this.vx*this.vx+this.vy*this.vy;
+	var temp1 = -0.1;
+	temp1 +=intMaxVelocity*intMaxVelocity;
+	if(vr>temp1){
+		temp1 =  Math.sqrt(temp1/vr);
+		this.vx*=temp1;
+		this.vy*=temp1;
+	}
+	// if(this.vx>intMaxVelocity){this.vx=intMaxVelocity;}
+	// if(this.vx<-intMaxVelocity){this.vx=-intMaxVelocity;}
+	// if(this.vy>intMaxVelocity){this.vy=intMaxVelocity;}
+	// if(this.vy<-intMaxVelocity){this.vy=-intMaxVelocity;}
+	this.x+=this.vx;
+	this.y+=this.vy;
+}
+Kotak.prototype.checkWall=function (){
+	if(strWallType=="WALL"){
+		if(this.x>cnvs.width){this.vx*=-1;this.x=cnvs.width-this.x+cnvs.width;}
+		if(this.x<0){this.vx*=-1;this.x*=-1};
+		if(this.y>cnvs.height){this.vy*=-1;this.y=cnvs.height-this.y+cnvs.height;}
+		if(this.y<0){this.vy*=-1;this.y*=-1};
+	}else if(strWallType=="PORTAL"){
+		if(this.x>cnvs.width)this.x-=cnvs.width;
+		if(this.x<0)this.x+=cnvs.width;
+		if(this.y>cnvs.height)this.y-=cnvs.height;
+		if(this.y<0)this.y+=cnvs.height;
+	}else{
+		//annihilator
+		if(this.x>cnvs.width || this.x<0 || this.y>cnvs.height || this.y<0)factoryKotak.removeThis(this);
+	}
+}
+//factoryKOTAK
+var factoryKotak= new function(){
+	this.container=[];
+	this.SerialNumber =0;
+
+	this.buatSatu=function (){
+		var kk=new Kotak();
+		kk.sn = this.SerialNumber;
+		this.SerialNumber++;
+		this.container.push(kk);
+	}
+	this.mechanicPreKKI=function(){
+		this.container.forEach(function(akk){
+			akk.intializeForces();
+			akk.calcGlobalForce();
+		});
+	}
+	this.mechanicKKI=function(){
+		for(ck1=0;ck1<this.container.length;ck1++){
+			for(ck2=ck1+1;ck2<this.container.length;ck2++){
+				var r=kkInteractionRsquared(this.container[ck1],this.container[ck2]);
+				kkInteractionGravity(r,this.container[ck1],this.container[ck2]);
+				kkInteractionInelasticCollision(r,this.container[ck1],this.container[ck2]);
+			}
+		}
+	}
+	this.mechanicPostKKI=function(){
+		this.container.forEach(function(akk){
+			akk.gerak();
+			akk.checkWall();
+		});
+	}
+	this.gambar=function(){
+		this.container.forEach(function(akk){
+			akk.gambar();
+		});
+	}
+	this.removeThis=function(ak){
+		for(ck=0;ck<this.container.length;ck++){
+			if(this.container[ck].sn==ak.sn){
+				var remk = this.container.splice(ck,1);
+				remk = null;
+				return;
+			}
+		}
+	}
+}
+
+console.log("~BoxSys : GAME:init");
+function gameInit(ac){
+	for(ck=0;ck<ac;ck++){
+		factoryKotak.buatSatu();
+	}
+}
+console.log("~BoxSys : GAME:loop");
+function appLoop(){
+	requestAnimationFrame(appLoop);
+	delta = (new Date().getTime() - lastCalledTime)/1000;
+	if(delta*1000<intTargetDelta){
+		//console.log("too quick");
+		return;	
+	}
+	lastCalledTime = new Date().getTime();
+	fps=1/delta;
+	//console.log("delta: "+delta*1000+ " fps: "+1/delta);
+	//INPUT
+	//FORCE
+	//ACCELERATE
+	factoryKotak.mechanicPreKKI();
+	factoryKotak.mechanicKKI();
+	factoryKotak.mechanicPostKKI();
+	//RENDER
+	//clear canvas
+	c.fillStyle="white";
+	c.fillRect(0, 0, cnvs.width,cnvs.height);
+	//render objects
+	factoryKotak.gambar();
+}
+
+console.log("~BoxSys : GAME:run");
+gameInit(intInitialKotakCount);
+appLoop();
+
+// LIST of FORCES
+function down(ak){
+	ak.fy+=1;
+}
+function airFriction(ak){
+	var coef = .001;
+	ak.fx+=-ak.vx*coef;
+	ak.fy+=-ak.vy*coef;
+}
+function brownian(ak){
+	var amp = 0.9;
+	ak.fx+=(Math.random()*2-1)*amp;
+	ak.fy+=(Math.random()*2-1)*amp;
+}
+function simplePsuedoGravity(ak, ax,ay){
+	var gConst = 1/cnvs.width;
+	ak.fx-=(ak.x-ax)*gConst;
+	ak.fy-=(ak.y-ay)*gConst;
+}
+function linearGravity(ak, ax,ay){
+	var gConst = 1;
+	var r = Math.sqrt((ak.x-ax)*(ak.x-ax)+(ak.y-ay)*(ak.y-ay))
+	ak.fx-=gConst*(ak.x-ax)/r;
+	ak.fy-=gConst*(ak.y-ay)/r;
+}
+function quadGravity(ak, ax,ay){
+	var gConst = 50;
+	var r = (ak.x-ax)*(ak.x-ax)+(ak.y-ay)*(ak.y-ay);
+	ak.fx-=gConst*(ak.x-ax)/r;
+	ak.fy-=gConst*(ak.y-ay)/r;
+}
+function kkInteractionRsquared(ak1,ak2){
+	return (ak1.x-ak2.x)*(ak1.x-ak2.x)+(ak1.y-ak2.y)*(ak1.y-ak2.y);
+}
+function kkInteractionGravity(r,ak1, ak2){
+	//eConst <= 0 means attractive force
+	var eConst = -0.1;
+	eConst*=ak1.m*ak2.m;
+	var r = (ak1.x-ak2.x)*(ak1.x-ak2.x)+(ak1.y-ak2.y)*(ak1.y-ak2.y);
+	ak1.fx+=eConst*(ak1.x-ak2.x)/r;
+	ak1.fy+=eConst*(ak1.y-ak2.y)/r;
+	ak2.fx+=eConst*(ak2.x-ak1.x)/r;
+	ak2.fy+=eConst*(ak2.y-ak1.y)/r;
+}
+function kkInteractionInelasticCollision(r,ak1, ak2){
+	var r = (ak1.x-ak2.x)*(ak1.x-ak2.x)+(ak1.y-ak2.y)*(ak1.y-ak2.y);
+	if(r<(ak1.hs+ak2.hs)*(ak1.hs+ak2.hs)){
+		ak1.vx=(ak1.m*ak1.vx+ak2.m*ak2.vx)/(ak1.m+ak2.m);
+		ak1.vy=(ak1.m*ak1.vy+ak2.m*ak2.vy)/(ak1.m+ak2.m);
+		ak1.massChange(ak1.m+ak2.m);
+		factoryKotak.removeThis(ak2);
+	}
+}
+
+</script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

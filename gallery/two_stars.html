@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<title>
+	Box
+</title>
+<head>
+</head>
+<body>
+	<canvas id="canvasHTML" width="4000" height="2160" style="border:1px solid #d3d3d3;">
+		Your browser does not support the HTML5 canvas tag.
+	</canvas>
+	<script>
+
+console.log("~BoxSys : INIT:constant");
+var intBoxDefaultV = 10;
+var intBoxDefaultSize =10;
+var intTargetDelta = 30;
+var intMaxVelocity = 20;
+var strWallType = "PORTAL";
+
+console.log("~BoxSys : INIT:environment");
+requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.oRequestAnimationFrame;
+var cnvs = document.getElementById("canvasHTML");
+var c=cnvs.getContext("2d");
+var lastCalledTime= new Date().getTime();
+
+console.log("~BoxSys : INIT:class");
+//KOTAK
+function Kotak(){
+	this.i;
+	this.x=Math.random()*cnvs.width;
+	this.y=Math.random()*cnvs.height;
+	this.w=intBoxDefaultSize/2;
+	this.h=intBoxDefaultSize/2;
+	this.vx=(Math.random()*2-1)*intBoxDefaultV;
+	this.vy=(Math.random()*2-1)*intBoxDefaultV;
+	this.m=1;
+	this.fx=0;
+	this.fy=0;
+	this.ax=0;
+	this.ay=0;
+}
+Kotak.prototype.gambar=function (){
+	c.strokeRect(this.x-this.w, this.y-this.h, this.w*2, this.h*2);
+}
+Kotak.prototype.calcForce=function (){
+	this.fx = 0;
+	this.fy = 0;
+	//down(this);
+	brownian(this);
+	airFriction(this);
+	
+	quadGravity(this,cnvs.width*2/3,cnvs.height*2/3);
+	quadGravity(this,cnvs.width/3,cnvs.height/2);
+}
+Kotak.prototype.gerak=function (){
+	this.ax=this.fx/this.m;
+	this.ay=this.fy/this.m;
+	this.vx+=this.ax;
+	this.vy+=this.ay;
+	var vr = this.vx*this.vx+this.vy*this.vy;
+	var temp1 = -0.1;
+	temp1 +=intMaxVelocity*intMaxVelocity;
+	if(vr>temp1){
+		temp1 =  Math.sqrt(temp1/vr);
+		this.vx*=temp1;
+		this.vy*=temp1;
+	}
+	// if(this.vx>intMaxVelocity){this.vx=intMaxVelocity;}
+	// if(this.vx<-intMaxVelocity){this.vx=-intMaxVelocity;}
+	// if(this.vy>intMaxVelocity){this.vy=intMaxVelocity;}
+	// if(this.vy<-intMaxVelocity){this.vy=-intMaxVelocity;}
+	this.x+=this.vx;
+	this.y+=this.vy;
+}
+Kotak.prototype.checkWall=function (){
+	if(strWallType=="WALL"){
+		if(this.x>cnvs.width){this.vx*=-1;this.x=cnvs.width-this.x+cnvs.width;}
+		if(this.x<0){this.vx*=-1;this.x*=-1};
+		if(this.y>cnvs.height){this.vy*=-1;this.y=cnvs.height-this.y+cnvs.height;}
+		if(this.y<0){this.vy*=-1;this.y*=-1};
+	}else if(strWallType=="PORTAL"){
+		if(this.x>cnvs.width)this.x-=cnvs.width;
+		if(this.x<0)this.x+=cnvs.width;
+		if(this.y>cnvs.height)this.y-=cnvs.height;
+		if(this.y<0)this.y+=cnvs.height;
+	}else{
+		//annihilator
+		this.removeMe();
+	}
+}
+Kotak.prototype.mechanic=function (){
+	this.calcForce();
+	this.gerak();
+	this.checkWall();
+}
+Kotak.prototype.removeMe=function (){
+	//factoryKotak.container[this.i]=null;
+}
+//factoryKOTAK
+var factoryKotak= new function(){
+	this.container=[];	
+
+	this.buatSatu=function (){
+		var kk=new Kotak();
+		kk.i = this.container.length;
+		this.container.push(kk);
+	}
+	this.mechanic=function(){
+		this.container.forEach(function(akk){
+			akk.mechanic();
+		});
+	}
+	this.gambar=function(){
+		this.container.forEach(function(akk){
+			akk.gambar();
+		});
+	}
+}
+
+console.log("~BoxSys : GAME:init");
+function gameInit(){
+	for(ck=0;ck<423;ck++){
+		factoryKotak.buatSatu();
+	}
+}
+console.log("~BoxSys : GAME:loop");
+function appLoop(){
+	requestAnimationFrame(appLoop);
+	delta = (new Date().getTime() - lastCalledTime)/1000;
+	if(delta*1000<intTargetDelta){
+		//console.log("too quick");
+		return;	
+	}
+	lastCalledTime = new Date().getTime();
+	console.log("delta: "+delta*1000+ " fps: "+1/delta);
+	//INPUT
+	//FORCE
+	//ACCELERATE
+	factoryKotak.mechanic();
+	//RENDER
+	//clear canvas
+	c.fillStyle="white";
+	c.fillRect(0, 0, cnvs.width,cnvs.height);
+	//render objects
+	factoryKotak.gambar();
+}
+
+console.log("~BoxSys : GAME:run");
+gameInit();
+appLoop();
+
+// LIST of FORCES
+function down(ak){
+	ak.fy+=0.1;
+}
+function airFriction(ak){
+	var coef = .009;
+	ak.fx+=-ak.vx*coef;
+	ak.fy+=-ak.vy*coef;
+}
+function brownian(ak){
+	var amp = 0.9;
+	ak.fx+=(Math.random()*2-1)*amp;
+	ak.fy+=(Math.random()*2-1)*amp;
+}
+function simplePsuedoGravity(ak, ax,ay){
+	var gConst = 1/cnvs.width;
+	ak.fx-=(ak.x-ax)*gConst;
+	ak.fy-=(ak.y-ay)*gConst;
+}
+function linearGravity(ak, ax,ay){
+	var gConst = 1;
+	var r = Math.sqrt((ak.x-ax)*(ak.x-ax)+(ak.y-ay)*(ak.y-ay))
+	ak.fx-=gConst*(ak.x-ax)/r;
+	ak.fy-=gConst*(ak.y-ay)/r;
+}
+function quadGravity(ak, ax,ay){
+	var gConst = 50;
+	var r = (ak.x-ax)*(ak.x-ax)+(ak.y-ay)*(ak.y-ay);
+	ak.fx-=gConst*(ak.x-ax)/r;
+	ak.fy-=gConst*(ak.y-ay)/r;
+}
+	
+	</script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

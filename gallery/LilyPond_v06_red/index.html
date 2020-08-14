@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<!-- By Beatrice Bernardo and Arian Prabowo -->
+<title id="title">lilypond_v06: red</title>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+</head>
+<body>
+<h1 id="heading">Lily Pond</h1>
+<div id="subheading">version 06: By Beatrice Bernardo</div>
+<div id="introduction">This is a simulation of Exponential Growth and Decay of Population of Lilies in a Pond. Scroll to the bottom of the page for more detailed explanation</div>
+<canvas id="canvasLilyPond" width="800" height="600" style="border:1px dotted AliceBlue; background-color:lightseagreen">
+	Your browser does not support HTML5 canvas. So sad...
+</canvas>
+
+<div id="quick_info" style="display:table;">
+	<div id="quick_info_title" style="display:table-row">
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			FPS
+		</div>
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			time
+		</div>
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			02:D:D_unrounded
+		</div>
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			LL_c
+		</div>
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			LL_Z
+		</div>
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			LL_u
+		</div>
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			AL_c
+		</div>
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			AL_Z
+		</div>
+		<div style="display:table-cell; padding:5px; border:1px solid black;">
+			AL_u
+		</div>
+	</div>
+	<div id="quick_info_data" style="display:table-row">
+		<div id="fps" style="display:table-cell; padding:5px; border:1px solid black;">
+			30
+		</div>
+		<div id="time" style="display:table-cell; padding:5px; border:1px solid black;">
+			56:34:12
+		</div>
+		<div id="02_count" style="display:table-cell; padding:5px; border:1px solid black;">
+			4321
+		</div>
+		<div id="lilyCount" style="display:table-cell; padding:5px; border:1px solid black;">
+			4321
+		</div>
+		<div id="lilyZ" style="display:table-cell; padding:5px; border:1px solid black;">
+			654321
+		</div>
+		<div id="lilyM" style="display:table-cell; padding:5px; border:1px solid black;">
+			21
+		</div>
+		<div id="alilyCount" style="display:table-cell; padding:5px; border:1px solid black;">
+			4321
+		</div>
+		<div id="alilyZ" style="display:table-cell; padding:5px; border:1px solid black;">
+			654321
+		</div>
+		<div id="alilyM" style="display:table-cell; padding:5px; border:1px solid black;">
+			21
+		</div>
+	</div>	
+</div>
+
+<div style="display:table">
+	<div style="display:table-cell">
+		<button id="startpause" type="button" title="click this to pause the simulation, click again to continue" onclick="clickStartPause()">PAUSE</button>
+	</div>
+	<div style="display:table-cell">
+	<div id="table_button" style="display:table;">
+		<div id="row_positive_button" style="display:table-row">
+			<div style="display:table-cell"><button id="addO2" type="button" title="after clicking this, click anywhere in the pond" onclick="clickAddO2()">Add 100 O2</button></div>
+			<div style="display:table-cell"><button id="addLily" type="button" title="after clicking this, click anywhere in the pond" onclick="clickAddLily()">Add a Lily</button></div>
+			<div style="display:table-cell"><button id="addAntiLily" type="button" title="after clicking this, click anywhere in the pond" onclick="clickAddAL()">Add an Anti Lily</button></div>
+		</div>
+		<div id="row_negative_button" style="display:table-row">
+			<div style="display:table-cell"><button id="minO2" type="button" title="100 O2 removed at random" onclick="clickRemO2()">Remove 100 O2</button></div>
+			<div style="display:table-cell"><button id="minLily" type="button" title="10 lilies removed at random; then, you could also remove a single lily by clicking on it" onclick="clickRemLily()">Remove 10 Lilies</button></div>
+			<div style="display:table-cell"><button id="minAntiLily" type="button" title="after clicking this, click the anti lily you want to remove" onclick="clickRemAL()">Remove an Anti Lily</button></div>
+		</div>
+	</div>
+	</div>
+</div>
+
+
+
+<div id="info">
+<h2>A Simulation of Exponential Growth and Decay of Population of Lilies in a Pond.</h2>
+<p>French children are told a story in which they imagine having a pond with water lily leaves floating on the surface. The lily population doubles in size every day and if left unchecked will smother the pond in 30 days, killing all the other living things in the water. Day after day the plant seems small and so it is decided to leave it to grow until it half-covers the pond, before cutting it back. They are then asked on what day half-coverage will occur. This is revealed to be the 29th day, and then there will be just one day to save the pond. <i> Porritt, Jonathan (2005). Capitalism: as if the world matters. London: Earthscan. p. 49. ISBN 1-84407-192-8.</i></p>
+<p>In the face of resource abundance, population, humans included, will grow beyond sustainable level, only to meet the unevitable extinction event. At the beggining, the pond is devoid of Oxygen (a faint blue dot). Overtime, it slowly acculumates to around 700 unit. Oxygen here represents an arbitary resource. A Lily would shrink, unless is absorb Oxygen, which would make it grow in size. After it reaches a certain size, it will reproduce into two smaller lilies. To simulate the infamous J-curve, wait until the pool is saturated with Oxygen, then release just one Lily. The Lily will smother the pond, just like in French story, in roughly 30 seconds. Use the buttons to have more interactions with the simulation. Hover to see tooltips that explains how the button works.</p>
+<h3>References:</h3>
+<br>http://en.wikipedia.org/wiki/Exponential_growth#Water_lily
+<br>http://demonstrations.wolfram.com/LilyPond/
+<br>https://www.youtube.com/watch?v=o0ghHia-M54
+<h3>Advanced</h3>
+<p>press F12 (chrome) to open the javascript console and use the guide below to change the constants. Listed below are the constant with the default values.</p>
+<br>_CANVAS_WIDTH = 800;
+<br>_CANVAS_HEIGHT = 600;
+<br>_FPS = 30;
+<br>_O2_NORMAL_COUNT = 700;
+<br>_O2_REFPLENISHMENT_RATE = 0.0001;
+<br>_O2_MASS=107;
+<br>_O2_SIZE_FACTOR=0.1;
+<br>_O2_COLOR="darkseagreen";
+<br>_LILY_AIR_FRICTION_COEF =0.01;
+<br>_LILY_COLOR = "green";
+<br>_LILY_MAXLIFE = 100;
+<br>_LILY_DELTA_LIFE = -0.1;
+<br>_AL_COLOR= "brown";
+<br>_AL_MAXLIFE = 100;
+<br>_AL_DELTA_LIFE = -0.1;
+<br>_LLvLL_GRAVITY_RANGE = 4;
+<br>_LLvLL_GRAVITY_COEF=4;
+<br>_ALvLL_GRAVITY_RANGE = 4;
+<br>_ALvLL_GRAVITY_COEF=4;
+<br>_TRACE_VALUES_MOD = 30;
+</div>
+<!--SCRIPTS-->
+
+<script src="uiLilyPond.js"></script>
+<script src="globalLilyPond.js"></script>
+<script src="engineLilyPond.js"></script>
+<script src="DynamicParticle.js"></script>
+<script src="Lily.js"></script>
+<script src="AntiLily.js"></script>
+<script src="Oxygen.js"></script>
+<script>
+console.log("random number check: "+Math.random());
+//=====INITALIZATION=====
+_canvasElement.on("mousedown",onMouseDown_Canvas);
+lilyFactory._linearAirFrictionCoeeficient=_LILY_AIR_FRICTION_COEF;
+oxygen2Factory.intDefaultDensity=1/_O2_SIZE_FACTOR;
+oxygen2Factory.intDefaultMass=_O2_MASS;
+//=====GAME START=====
+console.log("game engine: ignition");
+_lilypond_mainGameLoop();
+console.log("report: game engine ignited");
+console.log("frame_c;02_c;LL_c;LL_Z;AL_c;AL_Z");
+</script>
+</body>
+</html>
