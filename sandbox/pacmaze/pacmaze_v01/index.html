@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<!-- By Beatrice Bernardo and Arian Prabowo -->
+<title id="title">PacMaze_v01</title>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+</head>
+<body>
+<h1 id="heading">PacMaze</h1>
+<p>v01</p>
+<canvas id="canvasPM">Your browser does not support HTML5 canvas. So sad...</canvas>
+<p id="display">display<p>
+<script src="PMglobal.js"></script>
+<script src="PMengine.js"></script>
+<script src="PMui.js"></script>
+<script src="Paku.js"></script>
+<script>
+	console.log("random number check: "+Math.random());
+//=====CONSTANT=====
+	var _SCALE = 24;
+	var _FPS = 30;
+	var _CANVAS_WIDTH = 800;
+	var _CANVAS_HEIGHT = 600;
+	var _CANVAS_BORDER = "1px dotted AliceBlue"
+	var _CANVAS_BCKGRND_CLR = "black";
+	var _PAKU_COLOR = "yellow";
+	var _PAKU_RAIDUS = 24/24;
+	var _PAKU_SPEED  = 24/3;
+
+//=====INITALIZATION=====
+	var _TIMESTEP=1000/_FPS;
+	var _canvasElmnt= $("#canvasPM").get(0);
+	var _canvasCtx = _canvasElmnt.getContext("2d");
+	var _paku = new Paku();
+	_canvasElmnt.width = _CANVAS_WIDTH;
+	_canvasElmnt.height = _CANVAS_HEIGHT;
+	_canvasElmnt.style.border = _CANVAS_BORDER;
+	_canvasElmnt.style.backgroundColor = _CANVAS_BCKGRND_CLR;
+	document.addEventListener('keydown',onKeyDown_keyboard);
+//=====GAME START=====
+	console.log("game engine: ignition");
+	_PM_Gameloop();
+	console.log("report: game engine ignited");
+</script>
+</body>
+</html>

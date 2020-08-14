@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<!-- By Beatrice Bernardo and Arian Prabowo -->
+<title id="title">PacMaze_v04</title>
+<head>
+<!--script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="jquery-1.11.2.min"></script-->
+</head>
+<body>
+<h1 id="heading">Pretty Space</h1>
+<p>v04: food and energy and lame ghost</p>
+<div style="position:relative; height:600px">
+<canvas id="canvasPM" style="z-index: 2; position:absolute; left:0px; top:0px;">Your browser does not support HTML5 canvas. So sad...</canvas>
+<canvas id="canvasMaze" style="z-index: 1; position:absolute; left:0px; top:0px;">Your browser does not support HTML5 canvas. So sad...</canvas>
+</div>
+<p id="display">display<p>
+
+<script>
+	console.log("random number check: "+Math.random());
+//=====CONSTANT=====
+	var _UNIT=14;
+	var _SCALE = 40/_UNIT;
+	var _OFFSET_X = 0;
+	var _OFFSET_Y = 0;
+	var _FPS = 30;
+	var _MAZE = {width:300,height:300}; //300 is maximum with max performance
+	var _WALL_COLOR = "blue";
+	var _CANVAS_WIDTH = 800;
+	var _CANVAS_HEIGHT = 600;
+	var _CANVAS_BORDER = "1px dotted AliceBlue"
+	var _CANVAS_BCKGRND_CLR = "black";
+	var _PAKU_COLOR = [255,255,0];//"yellow";
+	var _PAKU_RAIDUS = _UNIT/2; //original pacman 14x14 pixel
+	var _PAKU_SPEED  = _UNIT/2;//multiple of unit only please
+	var _PAKU_MOUTHSIZE_CLOSED = Math.PI/6;
+	var _PAKU_MOUTHSIZE_OPEN = Math.PI/1.5;
+	var _PAKU_MOUTH_STEP_MAX = 30;
+	var _PAKU_MOUTH_STEP_MIN = 2;
+	var _PAKU_OPAQ_MIN = 0.1;
+	var _FORCE_CAMERA_FOLLOW = true;
+	var _LIFE_MAX =3000;
+	var _LIFE_RATE = -1; //perframe
+	var _PACDOT_LIFE = 300;
+	var _PACDOT_SIZE= 2;
+	var _PACDOT_COLOR = "white" ;
+
+</script>
+<script src="PMglobal.js"></script>
+<script src="PMengine.js"></script>
+<script src="PMui.js"></script>
+<script src="Character.js"></script>
+<script src="Paku2.js"></script>
+<script src="Maze.js"></script>
+<script src="Pacdot.js"></script>
+<script src="Ghosts.js"></script>
+<script>
+//=====INITALIZATION=====
+	var _TIMESTEP=1000/_FPS;
+	var _canvasElmnt= document.getElementById("canvasPM");// $("#canvasPM").get(0);
+	var _canvasCtx = _canvasElmnt.getContext("2d");
+	_canvasElmnt.width = _CANVAS_WIDTH;
+	_canvasElmnt.height = _CANVAS_HEIGHT;
+	_canvasElmnt.style.border = _CANVAS_BORDER;
+	_canvasElmnt.style.backgroundColor=_CANVAS_BCKGRND_CLR;
+	document.addEventListener('keydown',onKeyDown_keyboard);
+	document.addEventListener('keyup',onKeyUp_keyboard);
+	_MAZE.createNew();
+	PacdotFactory.populate();
+	_paku.placeRandomlyOnMap();
+	for(cg=0;cg<900;cg++){new Ghost("a"+cg);}
+	CharacterContainer.placeRandomlyOnMap();
+//=====GAME START=====
+	console.log("game engine: ignition");
+	_PM_Gameloop();
+	console.log("report: game engine ignited");
+
+</script>
+</body>
+</html>
+<!--
+
+COORDINATE SYSTEM
+There are coordinate system
+1. GRID: gx and gy - Most basic unit: One WallBox and PakuMan and Ghost is 1 Grid square (all discrete calc)
+convert using _UNIT =14
+2. PIXEL: px and py - Size of the original PacMan (all continous calc)
+convert using _SCALE, _OFFSET_X and _OFFSET_Y
+3. CANVAS: cx and cy - The actual coordinate relative to the canvas: draw on PMcanvas
+
+GRID: Maze generation, wall hit test
+PIXEL: Kinematics? , PacMan vs interactable Hit Test
+CANVAS: Only for drawing, camera pan and zoom
+
+-->
