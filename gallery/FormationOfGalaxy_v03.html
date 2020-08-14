@@ -252,8 +252,8 @@ function kkInteractionGravity(r,ak1, ak2){
 	var x_sign = 1
 	var y_sign = 1
 	if(strWallType=="PORTAL"){
-		x_sign = (Math.abs(ak1.x-ak2.x)<cnvs.width)? 1:-1;
-		y_sign = (Math.abs(ak1.y-ak2.y)<cnvs.height)? 1:-1;
+		x_sign = (Math.abs(ak1.x-ak2.x)<cnvs.width/2)? 1:-1;
+		y_sign = (Math.abs(ak1.y-ak2.y)<cnvs.height/2)? 1:-1;
 	}
 	ak1.fx+=x_sign*eConst*(ak1.x-ak2.x)/r;
 	ak1.fy+=y_sign*eConst*(ak1.y-ak2.y)/r;
