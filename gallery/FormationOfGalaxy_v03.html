@@ -31,6 +31,8 @@
 	var intInitialKotakCount = 1234;
 	var fps="not yet defined";
 	var delta="not yet defined";
+	var box_color = "yellow";
+	var background_color = "black"
 
 	console.log("~BoxSys : INIT:environment");
 	requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.oRequestAnimationFrame;
@@ -156,7 +158,7 @@ var factoryKotak= new function(){
 	}
 	this.gambar=function(){
 		c.beginPath();
-		c.fillStyle="black";
+		c.fillStyle=box_color;
 		this.container.forEach(function(akk){
 			akk.gambar();
 		});
@@ -198,7 +200,7 @@ function appLoop(){
 	factoryKotak.mechanicPostKKI();
 	//RENDER
 	//clear canvas
-	c.fillStyle="white";
+	c.fillStyle=background_color;
 	c.fillRect(0, 0, cnvs.width,cnvs.height);
 	//render objects
 	factoryKotak.gambar();
