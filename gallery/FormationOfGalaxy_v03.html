@@ -249,10 +249,16 @@ function kkInteractionGravity(r,ak1, ak2){
 	var eConst = -0.1;
 	eConst*=ak1.m*ak2.m;
 // 	var r = (ak1.x-ak2.x)*(ak1.x-ak2.x)+(ak1.y-ak2.y)*(ak1.y-ak2.y);
-	ak1.fx+=eConst*(ak1.x-ak2.x)/r;
-	ak1.fy+=eConst*(ak1.y-ak2.y)/r;
-	ak2.fx+=eConst*(ak2.x-ak1.x)/r;
-	ak2.fy+=eConst*(ak2.y-ak1.y)/r;
+	var x_sign = 1
+	var y_sign = 1
+	if(strWallType=="PORTAL"){
+		x_sign = (Math.abs(ak1.x-ak2.x)<cnvs.width)? 1:-1;
+		y_sign = (Math.abs(ak1.y-ak2.y)<cnvs.height)? 1:-1;
+	}
+	ak1.fx+=x_sign*eConst*(ak1.x-ak2.x)/r;
+	ak1.fy+=y_sign*eConst*(ak1.y-ak2.y)/r;
+	ak2.fx+=x_sign*eConst*(ak2.x-ak1.x)/r;
+	ak2.fy+=y_sign*eConst*(ak2.y-ak1.y)/r;
 }
 function kkInteractionInelasticCollision(r,ak1, ak2){
 // 	var r = (ak1.x-ak2.x)*(ak1.x-ak2.x)+(ak1.y-ak2.y)*(ak1.y-ak2.y);
