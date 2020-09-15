@@ -9,7 +9,7 @@ function onMouseDown_Canvas(e){
 		    oxygen2Factory.container.forEach(function(aoo){
 		        distanceSqr = Math.pow(aoo.x-mx,2)+Math.pow(aoo.y-my,2);
 		        if(distanceSqr<=aoo.radius*aoo.radius){
-		        	console.log("Beatrice just shot:" , aoo);
+		        	console.log("Just shot:" , aoo);
 		            oxygen2Factory.removeDynamicParticle(aoo);
 		        }
 		    });
