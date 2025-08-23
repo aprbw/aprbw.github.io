@@ -1,0 +1,1681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>N-Body Playground</title>
+<style>
+  :root{
+    --panel-w: 280px;
+    --gap: 12px;
+    --bg: #fff;
+    --fg: #000;
+    --muted: #444;
+    --accent: #000;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0b0b0b; --fg:#eee; --muted:#bbb; --accent:#eee;}
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);}
+  .app{display:grid;grid-template-columns: auto 1fr; height:100vh; gap:12px;}
+  .panel{
+    width:var(--panel-w);
+    padding:14px;
+    box-sizing:border-box;
+    border-right:1px solid rgba(0,0,0,0.06);
+    overflow:auto;
+    background:linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
+  }
+  @media (prefers-color-scheme: dark){
+    .panel{ border-right:1px solid rgba(255,255,255,0.04); background: transparent; }
+  }
+  .collapser{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  h1{font-size:18px;margin:0 0 6px 0}
+  p.desc{margin:0 0 10px 0;color:var(--muted);font-size:13px}
+  .section{margin-top:12px;padding-top:10px;border-top:1px dashed rgba(0,0,0,0.04)}
+  label.row{display:grid;grid-template-columns:1fr 170px;align-items:center;gap:8px;margin:0 0 18px 0;font-size:13px}
+  /* tighter internal spacing than external row spacing for clearer grouping */
+  label.row .ctrl{margin-top:4px}
+  /* reduce bottom margin after last row inside a section */
+  .section label.row:last-of-type{margin-bottom:10px}
+  .ctrl{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+  .ctrl input[type="number"], .ctrl select{width:90%;padding:6px 8px;font-size:14px;border-radius:6px;border:1px solid rgba(0,0,0,0.18);background:transparent;color:var(--fg)}
+  .ctrl input[type="range"]{width:100%;}
+  input[type="number"]{padding:6px 8px;font-size:14px;border-radius:6px;border:1px solid rgba(0,0,0,0.18);background:transparent;color:var(--fg)}
+  .btns{display:flex;gap:8px;margin-top:8px}
+  button{padding:8px 10px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);background:transparent;color:var(--fg);cursor:pointer}
+  button.primary{background:var(--accent);color:var(--bg);font-weight:600}
+  .display-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+  .stat{padding:8px;border-radius:6px;background:rgba(0,0,0,0.03);font-size:13px}
+  @media (prefers-color-scheme: dark){
+    .stat{background:rgba(255,255,255,0.03)}
+    button{border:1px solid rgba(255,255,255,0.03)}
+  }
+  /* canvas area */
+  .canvas-wrap{display:flex;align-items:stretch;justify-content:center;padding:12px;box-sizing:border-box}
+  canvas{background:#000;display:block; width:100%; height:100%; border-radius:4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);}
+  /* small helpers */
+  .small{font-size:12px;color:var(--muted)}
+  .top-row{display:flex;gap:8px;align-items:center}
+  .toggle{display:inline-flex;align-items:center;gap:8px}
+  .collapse-btn{background:transparent;border:0;color:var(--muted);cursor:pointer}
+  .flex-row{display:flex;gap:8px;align-items:center}
+  .half{width:48%}
+  footer.small{margin-top:10px;color:var(--muted)}
+  /* uncollapse handle */
+  .uncollapse-handle{position:fixed;top:10px;left:10px;z-index:9999;padding:6px 8px;font-size:12px;border:1px solid rgba(0,0,0,0.25);background:var(--bg);color:var(--fg);border-radius:4px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.15);}
+  @media (prefers-color-scheme: dark){
+    .uncollapse-handle{border:1px solid rgba(255,255,255,0.25);box-shadow:0 2px 6px rgba(0,0,0,0.6);}
+  }
+  /* responsive */
+  @media(max-width:880px){
+    .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+    .panel{width:100%;border-right:0;border-bottom:1px solid rgba(0,0,0,0.06)}
+  }
+</style>
+</head>
+<body>
+<button id="uncollapseHandle" class="uncollapse-handle" style="display:none" title="Show controls">Show ></button>
+<div class="app">
+  <div class="panel" id="panel">
+    <div class="collapser top-row">
+      <div>
+        <h1>N-Body Playground</h1>
+        <p class="desc">
+          2D N-body simulation with inverse-square gravity,
+          Mie potential, and
+          wall effects.</p>
+      </div>
+      <div style="text-align:right">
+        <button id="toggleCollapse" class="collapse-btn">⬅︎</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="btns">
+  <button id="applyBtn" class="primary">Update Canvas</button>
+  <button id="restartBtn">Restart</button>
+      </div>
+
+      <div class="section">
+        <h3 style="margin:4px 0 6px 0;font-size:14px">UI</h3>
+        <label class="row"><span>Dark mode</span>
+          <div class="ctrl">
+            <select id="uiDarkMode">
+              <option value="system">Follow system</option>
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+        </label>
+
+        <label class="row"><span>Particle count</span>
+          <div class="ctrl">
+            <input type="number" id="particlesNumN" min="1" max="10000"/>
+            <input type="range" id="particlesNumR" min="1" max="10000"/>
+          </div>
+        </label>
+
+        <label class="row"><span>Particle alpha</span>
+          <div class="ctrl">
+            <input type="number" step="0.01" id="particleAlphaN" min="0" max="1"/>
+            <input type="range" id="particleAlphaR" min="0" max="1" step="0.01"/>
+          </div>
+        </label>
+
+        <label class="row"><span>Box Display size (px)</span>
+          <div class="ctrl">
+            <input type="number" id="particleSizeN" min="1" max="40"/>
+            <input type="range" id="particleSizeR" min="1" max="40"/>
+          </div>
+        </label>
+
+        <label class="row"><span>Canvas width (px)</span>
+          <div class="ctrl">
+            <input type="number" id="canvasWn" min="600" max="8000"/>
+            <input type="range" id="canvasWr" min="600" max="8000"/>
+          </div>
+        </label>
+
+        <label class="row"><span>Canvas height (px)</span>
+          <div class="ctrl">
+            <input type="number" id="canvasHn" min="600" max="8000"/>
+            <input type="range" id="canvasHr" min="600" max="8000"/>
+          </div>
+        </label>
+
+  <label class="row"><span>Time Scale (sim s / real s)</span>
+          <div class="ctrl">
+            <input type="number" id="simSpeedN" min="1" max="100" step="1"/>
+            <input type="range" id="simSpeedR" min="1" max="100" step="1"/>
+          </div>
+        </label>
+      </div>
+
+      <div class="section">
+        <h3 style="margin:4px 0 6px 0;font-size:14px">Environment</h3>
+        <label class="row"><span>Wall bounciness (0-1)</span>
+          <div class="ctrl">
+            <input type="number" id="wallBounceN" min="0" max="1" step="0.01"/>
+            <input type="range" id="wallBounceR" min="0" max="1" step="0.01"/>
+          </div>
+        </label>
+        <label class="row"><span>Wall jitter (px/frame)</span>
+          <div class="ctrl">
+            <input type="number" id="wallJitterN" min="0" max="3" step="0.1"/>
+            <input type="range" id="wallJitterR" min="0" max="3" step="0.1"/>
+          </div>
+        </label>
+        <label class="row"><span>Max accel (post-sum)</span>
+          <div class="ctrl">
+            <input type="number" id="maxForceN" min="0" max="90" step="0.1"/>
+            <input type="range" id="maxForceR" min="0" max="90" step="0.1"/>
+          </div>
+        </label>
+  <label class="row"><span>Max speed (magnitude)</span>
+          <div class="ctrl">
+            <input type="number" id="maxSpeedN" min="0" max="90"/>
+            <input type="range" id="maxSpeedR" min="0" max="90"/>
+          </div>
+        </label>
+        <label class="row"><span>Air friction</span>
+          <div class="ctrl">
+            <input type="number" id="airFrictionN" min="0" max="0.01" step="0.0001"/>
+            <input type="range" id="airFrictionR" min="0" max="0.01" step="0.0001"/>
+          </div>
+        </label>
+        <label class="row"><span>Viscosity</span>
+          <div class="ctrl">
+            <input type="number" id="viscosityN" min="0" max="0.01" step="0.0001"/>
+            <input type="range" id="viscosityR" min="0" max="0.01" step="0.0001"/>
+          </div>
+        </label>
+        <label class="row"><span>Visc threshold (|vrad|)</span>
+          <div class="ctrl">
+            <input type="number" id="viscosityThresholdN" min="0" max="10" step="0.001"/>
+            <input type="range" id="viscosityThresholdR" min="0" max="10" step="0.001"/>
+          </div>
+        </label>
+      </div>
+
+      <div class="section">
+        <h3 style="margin:4px 0 6px 0;font-size:14px">Forces</h3>
+        <label class="row"><span>Down gravity (px/s²)</span>
+          <div class="ctrl">
+            <input type="number" id="gDownN" step="0.01"/>
+            <input type="range" id="gDownR" min="-0.1" max="0.1" step="0.01"/>
+          </div>
+        </label>
+
+        <div style="margin-top:6px;font-size:13px;color:var(--muted)">Lennard-Jones (generalized)</div>
+        <label class="row"><span>Well depth (ε)</span>
+          <div class="ctrl">
+            <input type="number" id="LJepsN" step="0.01"/>
+            <input type="range" id="LJepsR" min="0" max="10" step="0.01"/>
+          </div>
+        </label>
+
+  <label class="row"><span>Equilibrium σ (px)</span>
+          <div class="ctrl">
+            <input type="number" id="LJsigmaN" min="3" step="1"/>
+            <input type="range" id="LJsigmaR" min="3" max="1000" step="1"/>
+          </div>
+        </label>
+
+        <label class="row"><span>m (repulsive exponent)</span>
+          <div class="ctrl">
+            <input type="number" id="mN" min="1" max="20" step="1"/>
+            <input type="range" id="mR" min="1" max="20" step="1"/>
+          </div>
+        </label>
+
+        <label class="row"><span>n (attractive exponent)</span>
+          <div class="ctrl">
+            <input type="number" id="nN" min="1" max="20" step="1"/>
+            <input type="range" id="nR" min="1" max="20" step="1"/>
+          </div>
+        </label>
+
+      </div>
+
+      <div class="section">
+        <h3 style="margin:4px 0 6px 0;font-size:14px">Optimization</h3>
+        <label class="row"><span>Integration</span>
+          <div class="ctrl">
+            <select id="integrator">
+              <option value="verlet" selected>Velocity Verlet</option>
+              <option value="rk4">RK4 (Runge-Kutta 4)</option>
+              <option value="euler">Forward Euler</option>
+            </select>
+          </div>
+        </label>
+
+        <label class="row"><span>Force Calculation</span>
+          <div class="ctrl">
+            <select id="forceMethod">
+              <option value="bruteforce">All pairs</option>
+              <option value="hybrid" selected>Hybrid (Tree far + Brute near)</option>
+            </select>
+          </div>
+        </label>
+        <label class="row"><span>Hybrid Theta</span>
+          <div class="ctrl">
+            <input type="number" id="hyThetaN" min="0.3" max="1.5" step="0.05" />
+            <input type="range" id="hyThetaR" min="0.3" max="1.5" step="0.05" />
+          </div>
+        </label>
+        <label class="row"><span>Hybrid Near r (px)</span>
+          <div class="ctrl">
+            <input type="number" id="hyNearRN" min="5" max="400" step="1" />
+            <input type="range" id="hyNearRR" min="5" max="400" step="1" />
+          </div>
+        </label>
+      </div>
+
+      <div class="section">
+  <h3 style="margin:4px 0 6px 0;font-size:14px">Stats</h3>
+        <div class="display-grid" id="displayGrid">
+          <div class="stat">Temperature:<div id="dispTemp" class="small">0</div></div>
+          <div class="stat">Total KE:<div id="dispKE" class="small">0</div></div>
+          <div class="stat">Potential E:<div id="dispPE" class="small">0</div></div>
+          <div class="stat">Total E:<div id="dispTE" class="small">0</div></div>
+          <div class="stat">Mean x accel:<div id="dispAx" class="small">0</div></div>
+          <div class="stat">Mean y accel:<div id="dispAy" class="small">0</div></div>
+          <div class="stat">Max acc mag:<div id="dispAavg" class="small">0</div></div>
+          <div class="stat">Current max speed:<div id="dispMaxV" class="small">0</div></div>
+          <div class="stat">Mean LJ attraction:<div id="dispLJatt" class="small">0</div></div>
+          <div class="stat">Mean LJ repulsion:<div id="dispLJrep" class="small">0</div></div>
+          <div class="stat">Sug Steps/Sim s:<div id="dispSugSteps" class="small">0</div></div>
+          <div class="stat">Render FPS:<div id="dispFPS" class="small">0</div></div>
+          <div class="stat">Steps / Sim s:<div id="dispStepHz" class="small">0</div></div>
+          <div class="stat">Steps / Real s:<div id="dispStepsReal" class="small">0</div></div>
+          <div class="stat">Time Scale req:<div id="dispScaleReq" class="small">0</div></div>
+          <div class="stat">Time Scale eff:<div id="dispScaleEff" class="small">0</div></div>
+          <div class="stat">LJ Skip %:<div id="dispLJSkip" class="small">0</div></div>
+          <div class="stat">LJ Pairs Computed:<div id="dispLJPairs" class="small">0</div></div>
+          <div class="stat">% Accel Clamped:<div id="dispPctAClamp" class="small">0</div></div>
+          <div class="stat">% Vel Clamped:<div id="dispPctVClamp" class="small">0</div></div>
+        </div>
+      </div>
+
+      <div class="section" id="scenariosSection">
+        <h3 style="margin:4px 0 6px 0;font-size:14px">Scenarios</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button class="scenario-btn" data-scenario="orbit_swirl" title="Long-range gentle swirl (m=2,n=1)">Orbit Swirl</button>
+          <button class="scenario-btn" data-scenario="classic_lj" title="Classic 12-6 LJ clustering">Classic LJ</button>
+          <button class="scenario-btn" data-scenario="cold_crystal" title="Low energy crystallizing cluster">Cold Crystal</button>
+          <button class="scenario-btn" data-scenario="hot_gas" title="High energy expanding gas">Hot Gas</button>
+          <button class="scenario-btn" data-scenario="thin_ring" title="Ring initialization for rotation">Thin Ring</button>
+          <button class="scenario-btn" data-scenario="dense_core" title="Very dense core with halo">Dense Core</button>
+          <button class="scenario-btn" data-scenario="crystal_core_1000_m2n1" title="Large crystal (N=1000, m=2 n=1)">Crystal Core 1000 m2n1</button>
+          <button class="scenario-btn" data-scenario="grid_6x6" title="6x6 static lattice start">6x6</button>
+          <button class="scenario-btn" data-scenario="grid_9x13" title="9x13 static lattice start">9x13</button>
+          <button class="scenario-btn" data-scenario="grid_9x13_2x" title="9x13 doubled (N=234)">9x13 2x</button>
+          <button class="scenario-btn" data-scenario="grid_9x13_3x" title="9x13 tripled (N=351)">9x13 3x</button>
+          <button class="scenario-btn" data-scenario="grid_9x13_8x" title="9x13 eightfold (N=936)">9x13 8x</button>
+          <button class="scenario-btn" data-scenario="grid_12x16" title="12x16 (192)">12x16</button>
+          <button class="scenario-btn" data-scenario="grid_12x16_5x" title="12x16 fivefold (N=960)">12x16 5x</button>
+          <button class="scenario-btn" data-scenario="grid_12x16_4x" title="12x16 fourfold (N=768)">12x16 4x</button>
+          <button class="scenario-btn" data-scenario="_1k" title="Wide 1k (8000x8000)">1k</button>
+        </div>
+        <p class="small" style="margin-top:6px;line-height:1.3">Applies immediately and restarts. Adjust after applying if desired.</p>
+      </div>
+
+      <footer class="small">
+        By Arian Prabowo 2025 08 12.
+        The default parameters works for n-body.
+        You can see melting,
+        surface tension causing them to pool together,
+        and finaly frozen.
+        Thanks to GPT-5 for the assistance.
+      </footer>
+
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="cv"></canvas>
+  </div>
+</div>
+
+<script>
+/* ---------------------------
+   Utilities & DOM wiring
+   --------------------------- */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const pair = (a,b)=>[a,b];
+
+/* Central defaults (source of truth) */
+const DEFAULTS = {
+  particleCount: 900, //165
+  particleAlpha: 0.5,
+  particleDisplaySize: 15,
+  canvasW: 4500, //1500
+  canvasH: 3100, //1100
+  simSpeed: 100,
+  wallBounce: 0.1,
+  wallJitter: 0.01,
+  maxForce: 2, // post-sum
+  maxSpeedComp: 10,
+  airFriction: 0.001,
+  viscosity: 0, // pairwise radial damping coefficient
+  viscosityThreshold: 0, // only apply damping when |vrad| >= threshold
+  gDown: 0.0,
+  // Gconst removed
+  LJ_eps: 0.01, // well depth
+  LJ_sigma: 100, // distance at which V=0
+  LJ_m: 2, // repulsive exponent
+  LJ_n: 1, // attractive exponent
+  hyTheta: 1.2,
+  hyNearR: 80
+};
+
+function applyDefaultsToUI(){
+  const map = [
+    ['particlesNumN','particlesNumR','particleCount'],
+    ['particleAlphaN','particleAlphaR','particleAlpha'],
+    ['particleSizeN','particleSizeR','particleDisplaySize'],
+    ['canvasWn','canvasWr','canvasW'],
+    ['canvasHn','canvasHr','canvasH'],
+    ['simSpeedN','simSpeedR','simSpeed'],
+    ['wallBounceN','wallBounceR','wallBounce'],
+    ['wallJitterN','wallJitterR','wallJitter'],
+    ['maxForceN','maxForceR','maxForce'],
+    ['maxSpeedN','maxSpeedR','maxSpeedComp'],
+    ['airFrictionN','airFrictionR','airFriction'],
+  ['viscosityN','viscosityR','viscosity'],
+  ['viscosityThresholdN','viscosityThresholdR','viscosityThreshold'],
+    ['gDownN','gDownR','gDown'],
+  // Gconst mapping removed
+    ['LJepsN','LJepsR','LJ_eps'],
+    ['LJsigmaN','LJsigmaR','LJ_sigma'],
+    ['mN','mR','LJ_m'],
+    ['nN','nR','LJ_n'],
+    ['hyThetaN','hyThetaR','hyTheta'],
+    ['hyNearRN','hyNearRR','hyNearR']
+  ];
+  map.forEach(([n,r,key])=>{
+    if($(n)) $(n).value = DEFAULTS[key];
+    if($(r)) $(r).value = DEFAULTS[key];
+  });
+}
+
+/* Sync number inputs with ranges */
+function syncPair(numId, rangeId, opts={}){
+  const n = $(numId), r = $(rangeId);
+  if(!n || !r) return;
+  const updateFromRange = ()=>{ n.value = r.value; if(opts.onchange) opts.onchange(+r.value); };
+  const updateFromNum = ()=>{ r.value = n.value; if(opts.onchange) opts.onchange(+n.value); };
+  r.addEventListener('input', updateFromRange);
+  n.addEventListener('change', updateFromNum);
+  // initial callback
+  if(opts.onchange) opts.onchange(+n.value);
+}
+
+/* attach many syncs */
+const syncPairs = [
+  ['particlesNumN','particlesNumR'],
+  ['particleAlphaN','particleAlphaR'],
+  ['particleSizeN','particleSizeR'],
+  ['canvasWn','canvasWr'],
+  ['canvasHn','canvasHr'],
+  ['simSpeedN','simSpeedR'],
+  ['wallBounceN','wallBounceR'],
+  ['wallJitterN','wallJitterR'],
+  ['maxForceN','maxForceR'],
+  ['maxSpeedN','maxSpeedR'],
+  ['airFrictionN','airFrictionR'],
+  ['viscosityN','viscosityR'],
+  ['viscosityThresholdN','viscosityThresholdR'],
+  ['gDownN','gDownR'],
+  // Gconst inputs removed
+  ['LJepsN','LJepsR'],
+  ['LJsigmaN','LJsigmaR'],
+  ['mN','mR'],
+  ['nN','nR'],
+  ['hyThetaN','hyThetaR'],
+  ['hyNearRN','hyNearRR']
+];
+// First push defaults into the UI, then attach syncing so callbacks read correct initial values
+applyDefaultsToUI();
+syncPairs.forEach(ids=>syncPair(ids[0],ids[1]));
+
+/* Collapse panel */
+const panel = $('panel');
+const toggleCollapse = $('toggleCollapse');
+const uncollapseHandle = $('uncollapseHandle');
+let collapsed = false;
+toggleCollapse.addEventListener('click',()=>{
+  collapsed = !collapsed;
+  panel.style.display = collapsed ? 'none' : 'block';
+  toggleCollapse.textContent = collapsed ? '➡︎' : '⬅︎';
+  uncollapseHandle.style.display = collapsed ? 'block' : 'none';
+});
+
+uncollapseHandle.addEventListener('click', ()=>{
+  collapsed = false;
+  panel.style.display = 'block';
+  toggleCollapse.textContent = '⬅︎';
+  uncollapseHandle.style.display = 'none';
+});
+
+/* Dark mode manual override follow system default */
+const uiDarkMode = $('uiDarkMode');
+// Track system preference so 'system' option updates live
+const systemDarkMedia = window.matchMedia('(prefers-color-scheme: dark)');
+let isDarkMode = systemDarkMedia.matches; // current effective dark mode for canvas rendering
+
+function recomputeEffectiveDarkMode(){
+  const v = uiDarkMode.value;
+  if(v === 'system'){
+    isDarkMode = systemDarkMedia.matches;
+    // remove explicit overrides so media query CSS applies
+    document.documentElement.style.removeProperty('--bg');
+    document.documentElement.style.removeProperty('--fg');
+  } else if(v === 'dark'){
+    isDarkMode = true;
+    document.documentElement.style.setProperty('--bg','#0b0b0b');
+    document.documentElement.style.setProperty('--fg','#eee');
+  } else { // light
+    isDarkMode = false;
+    document.documentElement.style.setProperty('--bg','#fff');
+    document.documentElement.style.setProperty('--fg','#000');
+  }
+}
+function applyDarkModeMode(){
+  recomputeEffectiveDarkMode();
+}
+uiDarkMode.addEventListener('change', applyDarkModeMode);
+systemDarkMedia.addEventListener('change', ()=>{ if(uiDarkMode.value==='system'){ recomputeEffectiveDarkMode(); } });
+applyDarkModeMode();
+
+/* ---------------------------
+   Simulation core
+   --------------------------- */
+const canvas = $('cv');
+const ctx = canvas.getContext('2d');
+
+let state = {
+  particles: [],
+  lastTimestamp: performance.now(),
+  fpsMeasured: 0,
+  stats: {},
+  lastStepDt: 0.0167,
+  stepsPerRealSecond: 0,
+  suggestedStepsPerSimSecond: 0
+};
+
+// Generalized Mie (normalized LJ) precomputed constants cache
+let mieCache = { valid:false, mExp:12, nExp:6, C:0, sigma:33, sig_m:0, sig_n:0, eps:0 };
+function updateMieCache(ctrl){
+  const m = Math.max(1, (ctrl.LJ_m|0));
+  const n = Math.max(1, (ctrl.LJ_n|0));
+  if(m === n || ctrl.LJ_eps === 0){ mieCache.valid = false; return; }
+  const C = ctrl.LJ_eps * (m * n) / (m - n); // coefficient for force
+  const sigma = ctrl.LJ_sigma;
+  const sig_m = Math.pow(sigma,m);
+  const sig_n = Math.pow(sigma,n);
+  const allFinite = isFinite(sigma) && isFinite(sig_m) && isFinite(sig_n) && isFinite(C) && sigma>0;
+  mieCache = { valid: allFinite, mExp:m, nExp:n, C: allFinite?C:0, sigma: allFinite?sigma:0, sig_m: allFinite?sig_m:0, sig_n: allFinite?sig_n:0, eps: allFinite?ctrl.LJ_eps:0 };
+  if(!allFinite){
+    console.warn('updateMieCache: invalid Mie parameters -> disabling Mie force', {m,n,eps:ctrl.LJ_eps,sigma});
+  }
+}
+
+// Unified UI key -> element id mapping (number, range)
+const UI_MAP = {
+  particleCount: ['particlesNumN','particlesNumR'],
+  particleAlpha: ['particleAlphaN','particleAlphaR'],
+  particleDisplaySize: ['particleSizeN','particleSizeR'],
+  canvasW: ['canvasWn','canvasWr'],
+  canvasH: ['canvasHn','canvasHr'],
+  simSpeed: ['simSpeedN','simSpeedR'],
+  wallBounce: ['wallBounceN','wallBounceR'],
+  wallJitter: ['wallJitterN','wallJitterR'],
+  maxForce: ['maxForceN','maxForceR'],
+  maxSpeedComp: ['maxSpeedN','maxSpeedR'],
+  airFriction: ['airFrictionN','airFrictionR'],
+  viscosity: ['viscosityN','viscosityR'],
+  viscosityThreshold: ['viscosityThresholdN','viscosityThresholdR'],
+  gDown: ['gDownN','gDownR'],
+  LJ_eps: ['LJepsN','LJepsR'],
+  LJ_sigma: ['LJsigmaN','LJsigmaR'],
+  LJ_m: ['mN','mR'],
+  LJ_n: ['nN','nR'],
+  hyTheta: ['hyThetaN','hyThetaR'],
+  hyNearR: ['hyNearRN','hyNearRR']
+};
+function getVal(key){ const ids=UI_MAP[key]; if(!ids) return undefined; for(const id of ids){ const el=$(id); if(el) return +el.value; } }
+function setValKey(key, v){ const ids=UI_MAP[key]; if(!ids) return; ids.forEach(id=>{ const el=$(id); if(el) el.value=v; }); }
+function readControls(){
+  return {
+    particleCount: (getVal('particleCount')|0),
+    particleAlpha: getVal('particleAlpha'),
+    particleDisplaySize: getVal('particleDisplaySize'),
+    canvasW: getVal('canvasW'),
+    canvasH: getVal('canvasH'),
+    simSpeed: getVal('simSpeed'),
+    wallBounce: getVal('wallBounce'),
+    wallJitter: getVal('wallJitter'),
+    maxForce: getVal('maxForce'),
+    maxSpeedComp: getVal('maxSpeedComp'),
+    airFriction: getVal('airFriction'),
+  viscosity: getVal('viscosity'),
+  viscosityThreshold: getVal('viscosityThreshold'),
+    gDown: getVal('gDown'),
+    LJ_eps: getVal('LJ_eps'),
+    LJ_sigma: getVal('LJ_sigma'),
+    LJ_m: getVal('LJ_m'),
+    LJ_n: getVal('LJ_n'),
+    integrator: $('integrator').value,
+    forceMethod: $('forceMethod').value,
+    hyTheta: getVal('hyTheta'),
+    hyNearR: getVal('hyNearR')
+  };
+}
+
+// Auto-adjust hybrid near-field radius (r = 3 * σ, clamped to input range)
+function autoSetHybridNearFromSigma(){
+  const sigmaInput = $('LJsigmaN');
+  const nearNum = $('hyNearRN');
+  const nearRange = $('hyNearRR');
+  if(!sigmaInput || !nearNum || !nearRange) return;
+  const sigma = +sigmaInput.value;
+  if(!(sigma>0)) return;
+  const desired = clamp(3 * sigma, +nearNum.min || 5, +nearNum.max || 400);
+  nearRange.value = desired;
+}
+
+/* Particle structure: {x,y,vx,vy,ax,ay,m} */
+function randomBetween(a,b){ return a + Math.random()*(b-a); }
+
+function initParticles(n, W, H, maxSpeed){
+  const p = [];
+  for(let i=0;i<n;i++){
+  // Initialize with zero velocity (user request). Previously random radial speed.
+  const vx = 0;
+  const vy = 0;
+    p.push({
+      x: randomBetween(10, W-10),
+      y: randomBetween(10, H-10),
+      vx, vy,
+      ax: 0,
+      ay: 0,
+      m: 1
+    });
+  }
+  return p;
+}
+
+// Safety pass to eliminate NaNs (will log first few offenders)
+function sanitizeParticles(parts){
+  let bad = 0;
+  for(let i=0;i<parts.length;i++){
+    const p = parts[i];
+    if(!Number.isFinite(p.x) || !Number.isFinite(p.y)){
+      if(bad < 5) console.warn('sanitizeParticles: fixing NaN position', i, p);
+      p.x = 0; p.y = 0; bad++;
+    }
+    if(!Number.isFinite(p.vx) || !Number.isFinite(p.vy)){
+      if(bad < 5) console.warn('sanitizeParticles: fixing NaN velocity', i, p);
+      p.vx = 0; p.vy = 0; bad++;
+    }
+    if(!Number.isFinite(p.ax) || !Number.isFinite(p.ay)){
+      p.ax = 0; p.ay = 0;
+    }
+  }
+  if(bad>0) console.warn('sanitizeParticles: corrected', bad, 'particles');
+}
+
+/* Force calculations */
+function computeForcesBrute(particles, ctrl){
+  // Pairwise gravity removed. Only generalized Mie (attraction + repulsion) and optional constant gDown.
+  const N = particles.length;
+  for(let i=0;i<N;i++){ const p=particles[i]; p.ax=0; p.ay=0; p.ljAt=0; p.ljRep=0; }
+  const useMie = mieCache.valid;
+  const totalPairs = N*(N-1)/2;
+  let ljPairsComputed = 0;
+  let totalLJatt=0,totalLJrep=0;
+  if(useMie){
+    const {mExp,nExp,C,sig_m,sig_n} = mieCache;
+    const rMinCut = 3;
+  const visc = ctrl.viscosity || 0; // pairwise damping when close
+  const viscVth = Math.max(0, ctrl.viscosityThreshold || 0); // threshold on |vrad|
+  const viscR = mieCache.sigma; // use sigma as interaction radius
+  const viscR2 = viscR * viscR;
+    for(let i=0;i<N;i++){
+      const pi = particles[i];
+      for(let j=i+1;j<N;j++){
+        const pj = particles[j];
+        const dx = pj.x - pi.x;
+        const dy = pj.y - pi.y;
+        const r2 = dx*dx + dy*dy;
+        let r = Math.sqrt(r2) + 1e-9;
+        if(r < rMinCut) r = rMinCut;
+        const r_m1 = Math.pow(r, -(mExp+1)); // for repulsive exponent m
+        const r_n1 = Math.pow(r, -(nExp+1)); // for attractive exponent n
+        const repTerm = - C * sig_m * r_m1;     // (can be large negative)
+        const attTerm =  C * sig_n * r_n1;      // positive term
+        const F = attTerm + repTerm;            // total force magnitude along +r direction
+        const fx = F * dx / r;
+        const fy = F * dy / r;
+        pi.ax += fx; pi.ay += fy;
+        pj.ax -= fx; pj.ay -= fy;
+        if(F > 0){ totalLJrep += F; pi.ljRep += F; pj.ljRep += F; } else { const a = -F; totalLJatt += a; pi.ljAt += a; pj.ljAt += a; }
+        if(visc>0 && r2 < viscR2){
+          // Pairwise radial viscous damping: enforce d(vrad)/dt = -visc * vrad
+          // Let F_i = (visc/2)*vrad * rhat, F_j = -F_i. Then relative radial accel = (F_j-F_i)·rhat = -visc*vrad.
+          const dvx = pj.vx - pi.vx;
+          const dvy = pj.vy - pi.vy;
+          const vrad = (dvx*dx + dvy*dy)/r; // relative radial velocity (vj-vi)·rhat
+          if(Math.abs(vrad) < viscVth){
+            // Below threshold: skip damping
+          } else {
+            const fd = 0.5 * visc * vrad;      // magnitude for particle i along +rhat
+            const fdx = fd * dx / r; const fdy = fd * dy / r;
+            pi.ax += fdx; pi.ay += fdy; pj.ax -= fdx; pj.ay -= fdy;
+          }
+        }
+        ljPairsComputed++;
+      }
+      if(ctrl.gDown !== 0) pi.ay += ctrl.gDown;
+    }
+  } else {
+    // No Mie; only constant downward acceleration if any
+    if(ctrl.gDown !== 0){
+      for(let i=0;i<N;i++) particles[i].ay += ctrl.gDown;
+    }
+  }
+  if(ctrl.maxForce > 0){
+    const maxA2 = ctrl.maxForce*ctrl.maxForce;
+    for(let i=0;i<N;i++){
+      const p=particles[i];
+      const a2 = p.ax*p.ax + p.ay*p.ay;
+      if(a2>maxA2){ const s=ctrl.maxForce/Math.sqrt(a2); p.ax*=s; p.ay*=s; p._clampedA=true; } else { p._clampedA=false; }
+    }
+  } else { for(let i=0;i<N;i++) particles[i]._clampedA=false; }
+  const ljSkipPct = totalPairs>0 ? ((totalPairs - ljPairsComputed)/totalPairs)*100 : 0;
+  return {totalLJatt,totalLJrep, ljPairsComputed, ljPairsTotal: totalPairs, ljSkipPct};
+}
+
+/* Hybrid force calculation: LJ + near gravity brute; far gravity via Barnes-Hut */
+function computeForcesHybrid(particles, ctrl){
+  // Repulsion only within nearR (brute). Attraction everywhere: near via brute, far via tree aggregation of attractive term only.
+  const N = particles.length;
+  const nearR = ctrl.hyNearR || (ctrl.LJ_sigma * 3) || 60;
+  const nearR2 = nearR * nearR;
+  const theta = Math.max(0.1, ctrl.hyTheta || 0.7);
+  const visc = ctrl.viscosity || 0;
+  const viscVth = Math.max(0, ctrl.viscosityThreshold || 0);
+  const viscR = mieCache.sigma || ctrl.LJ_sigma || 0;
+  const viscR2 = viscR * viscR;
+  for(let i=0;i<N;i++){ const p=particles[i]; p.ax=0; p.ay=0; p.ljAt=0; p.ljRep=0; }
+  const useMie = mieCache.valid;
+  const {mExp,nExp,C,sig_m,sig_n} = mieCache;
+  const rMinCut = 3;
+  let totalLJatt=0,totalLJrep=0; let ljPairsComputed=0; const totalPairs=N*(N-1)/2;
+  // Build quadtree for far attraction approximation (store mass count only)
+  const minX=0,minY=0,maxX=ctrl.canvasW,maxY=ctrl.canvasH;
+  const MAX_QT_DEPTH = 32;
+  const root = {x:minX,y:minY,w:maxX-minX,h:maxY-minY,mass:0,cx:0,cy:0,children:null,pIndex:-1,depth:0};
+  function insert(node, idx){
+    const p=particles[idx];
+    // If this node already holds same particle position and depth limit reached, accumulate mass instead of subdividing
+    if(node.pIndex===idx) return; // same particle index already stored
+    if(!node.children && node.pIndex===-1){ node.pIndex=idx; node.mass=1; node.cx=p.x; node.cy=p.y; }
+    else if(!node.children){
+      if(node.depth >= MAX_QT_DEPTH || node.w < 1 || node.h < 1){
+        // Stop subdividing; treat as aggregate bucket (accumulate mass & centroid)
+        if(node.mass===0){ node.mass=1; node.cx=p.x; node.cy=p.y; }
+        else { node.cx = (node.cx*node.mass + p.x)/(node.mass+1); node.cy = (node.cy*node.mass + p.y)/(node.mass+1); node.mass += 1; }
+        return;
+      }
+      const hw=node.w/2, hh=node.h/2;
+      node.children=[
+        {x:node.x,y:node.y,w:hw,h:hh,mass:0,cx:0,cy:0,children:null,pIndex:-1,depth:node.depth+1},
+        {x:node.x+hw,y:node.y,w:hw,h:hh,mass:0,cx:0,cy:0,children:null,pIndex:-1,depth:node.depth+1},
+        {x:node.x,y:node.y+hh,w:hw,h:hh,mass:0,cx:0,cy:0,children:null,pIndex:-1,depth:node.depth+1},
+        {x:node.x+hw,y:node.y+hh,w:hw,h:hh,mass:0,cx:0,cy:0,children:null,pIndex:-1,depth:node.depth+1}
+      ];
+      const old=node.pIndex; node.pIndex=-1; if(old!==-1) insert(node, old); insert(node, idx);
+    } else {
+      const hw=node.w/2, hh=node.h/2; const midX=node.x+hw, midY=node.y+hh; let c=0; if(p.x>=midX) c+=1; if(p.y>=midY) c+=2; insert(node.children[c], idx);
+    }
+  }
+  for(let i=0;i<N;i++) insert(root,i);
+  function aggregate(node){
+    if(node.children){ let m=0,cx=0,cy=0; for(const ch of node.children){ aggregate(ch); m+=ch.mass; cx+=ch.cx*ch.mass; cy+=ch.cy*ch.mass; } if(m>0){ cx/=m; cy/=m; } node.mass=m; node.cx=cx; node.cy=cy; }
+    else if(node.pIndex!==-1){ const p=particles[node.pIndex]; node.mass=1; node.cx=p.x; node.cy=p.y; }
+  }
+  aggregate(root);
+  // Near brute (full Mie force) + track repulsion only here
+  if(useMie){
+    for(let i=0;i<N;i++){
+      const pi=particles[i];
+      for(let j=i+1;j<N;j++){
+        const pj=particles[j];
+        const dx=pj.x-pi.x; const dy=pj.y-pi.y; const r2=dx*dx+dy*dy;
+        if(r2 <= nearR2){
+          let r=Math.sqrt(r2)+1e-9; if(r<rMinCut) r=rMinCut;
+          const r_m1 = Math.pow(r, -(mExp+1));
+          const r_n1 = Math.pow(r, -(nExp+1));
+          const repTerm = - C * sig_m * r_m1; // short-range
+          const attTerm =  C * sig_n * r_n1;  // longer-range
+          const F = attTerm + repTerm;
+          const fx = F * dx / r; const fy = F * dy / r;
+            pi.ax += fx; pi.ay += fy; pj.ax -= fx; pj.ay -= fy;
+          if(F>0){ totalLJrep+=F; pi.ljRep+=F; pj.ljRep+=F; } else { const a=-F; totalLJatt+=a; pi.ljAt+=a; pj.ljAt+=a; }
+          if(visc>0 && r2 < viscR2){
+            // Pairwise radial viscous damping (see brute-force loop above for derivation)
+            const dvx = pj.vx - pi.vx;
+            const dvy = pj.vy - pi.vy;
+            const vrad = (dvx*dx + dvy*dy)/r;
+            if(Math.abs(vrad) >= viscVth){
+              const fd = 0.5 * visc * vrad;
+              const fdx = fd * dx / r; const fdy = fd * dy / r;
+              pi.ax += fdx; pi.ay += fdy; pj.ax -= fdx; pj.ay -= fdy;
+            }
+          }
+          ljPairsComputed++;
+        }
+      }
+    }
+  }
+  // Far attraction via tree (aggregate using attractive term only ~ attTerm)
+  if(useMie){
+    function applyFar(i,node){
+      if(node.mass===0) return;
+      if(node.pIndex===i && !node.children) return;
+      const p=particles[i];
+      const dx=node.cx - p.x; const dy=node.cy - p.y; const dist2 = dx*dx+dy*dy + 1e-9; const dist=Math.sqrt(dist2);
+      if(dist2 <= nearR2){
+        if(node.children){ for(const ch of node.children) applyFar(i,ch); }
+        return;
+      }
+      if(node.children){
+        const size=node.w;
+        if( (size/dist) < theta){
+          // approximate attractive term only
+          const r_n1 = Math.pow(dist, -(nExp+1));
+          const Fatt = C * sig_n * r_n1 * node.mass; // repulsive term omitted beyond nearR
+          const fx = Fatt * dx / dist; const fy = Fatt * dy / dist;
+          p.ax += fx; p.ay += fy; // classify as attraction contribution
+          totalLJatt += Math.max(0, -Fatt); // Fatt likely positive in original sign convention; keep minimal metric impact
+        } else {
+          for(const ch of node.children) applyFar(i,ch);
+        }
+      } else { // leaf outside near region
+        const r_n1 = Math.pow(dist, -(nExp+1));
+        const Fatt = C * sig_n * r_n1; // single particle
+        const fx = Fatt * dx / dist; const fy = Fatt * dy / dist;
+        p.ax += fx; p.ay += fy;
+      }
+    }
+    for(let i=0;i<N;i++) applyFar(i,root);
+  }
+  if(ctrl.gDown !== 0){ for(let i=0;i<N;i++) particles[i].ay += ctrl.gDown; }
+  if(ctrl.maxForce>0){
+    const maxA2=ctrl.maxForce*ctrl.maxForce;
+    for(let i=0;i<N;i++){ const p=particles[i]; const a2=p.ax*p.ax+p.ay*p.ay; if(a2>maxA2){ const s=ctrl.maxForce/Math.sqrt(a2); p.ax*=s; p.ay*=s; p._clampedA=true; } else { p._clampedA=false; } }
+  } else { for(let i=0;i<N;i++) particles[i]._clampedA=false; }
+  const ljSkipPct = totalPairs>0 ? ((totalPairs - ljPairsComputed)/totalPairs)*100 : 0;
+  return {totalLJatt,totalLJrep, ljPairsComputed, ljPairsTotal: totalPairs, ljSkipPct};
+}
+
+function computeForcesUnified(particles, ctrl){
+  if(ctrl.forceMethod === 'hybrid') return computeForcesHybrid(particles, ctrl);
+  return computeForcesBrute(particles, ctrl);
+}
+
+/* integration */
+function integrateEuler(particles, dt, ctrl){
+  // magnitude-based velocity clamp
+  const maxMag = ctrl.maxSpeedComp; // reuse existing control value
+  for(const p of particles){
+    p.vx += p.ax * dt;
+    p.vy += p.ay * dt;
+    // air friction (simple linear drag factor)
+    const drag = 1 - ctrl.airFriction * dt;
+    p.vx *= drag;
+    p.vy *= drag;
+    if(maxMag > 0){
+      const speed = Math.hypot(p.vx, p.vy);
+      if(speed > maxMag){
+        const scale = maxMag / speed;
+        p.vx *= scale;
+        p.vy *= scale;
+        p._clampedV = true;
+      } else p._clampedV = false;
+    } else {
+      // zero max => freeze velocity
+      p.vx = 0; p.vy = 0; p._clampedV = true;
+    }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+  }
+}
+
+// RK4 integrator (velocity clamp applied at end). Air friction treated as linear term dv/dt += -airFriction * v.
+function integrateRK4(particles, dt, ctrl){
+  const N = particles.length;
+  const drag = ctrl.airFriction; // linear coefficient
+  const maxMag = ctrl.maxSpeedComp;
+  // Stage 1 already assumed accelerations currently in p.ax, p.ay (from prior computeForcesBrute call outside this function NOT done; so we compute here first).
+  // To avoid double force computation in Euler path we moved force call into simulation loop; for RK4 we encapsulate all 4 force evals here.
+  // We'll clone essential original state.
+  const x0 = new Array(N), y0 = new Array(N), vx0 = new Array(N), vy0 = new Array(N);
+  for(let i=0;i<N;i++){ const p = particles[i]; x0[i]=p.x; y0[i]=p.y; vx0[i]=p.vx; vy0[i]=p.vy; }
+  // Storage for intermediate derivatives
+  const k1x = new Array(N), k1y = new Array(N), k1vx = new Array(N), k1vy = new Array(N);
+  const k2x = new Array(N), k2y = new Array(N), k2vx = new Array(N), k2vy = new Array(N);
+  const k3x = new Array(N), k3y = new Array(N), k3vx = new Array(N), k3vy = new Array(N);
+  const k4x = new Array(N), k4y = new Array(N), k4vx = new Array(N), k4vy = new Array(N);
+
+  // Helper to apply speed clamp (used only at end)
+  function clampVelocity(p){
+    if(maxMag > 0){
+      const s = Math.hypot(p.vx, p.vy);
+      if(s > maxMag){ const sc = maxMag / s; p.vx *= sc; p.vy *= sc; p._clampedV=true; } else p._clampedV=false;
+    } else if(maxMag === 0){ p.vx = 0; p.vy = 0; p._clampedV=true; }
+  }
+
+  // Stage 1 forces
+  let forceStats = computeForcesUnified(particles, ctrl);
+  for(let i=0;i<N;i++){
+    const p = particles[i];
+    k1x[i] = p.vx;
+    k1y[i] = p.vy;
+    k1vx[i] = p.ax - drag * p.vx;
+    k1vy[i] = p.ay - drag * p.vy;
+  }
+  // Stage 2: set temp state
+  for(let i=0;i<N;i++){
+    const p = particles[i];
+    p.x = x0[i] + k1x[i]*dt/2;
+    p.y = y0[i] + k1y[i]*dt/2;
+    p.vx = vx0[i] + k1vx[i]*dt/2;
+    p.vy = vy0[i] + k1vy[i]*dt/2;
+  }
+  forceStats = computeForcesUnified(particles, ctrl);
+  for(let i=0;i<N;i++){
+    const p = particles[i];
+    k2x[i] = p.vx;
+    k2y[i] = p.vy;
+    k2vx[i] = p.ax - drag * p.vx;
+    k2vy[i] = p.ay - drag * p.vy;
+  }
+  // Stage 3
+  for(let i=0;i<N;i++){
+    const p = particles[i];
+    p.x = x0[i] + k2x[i]*dt/2;
+    p.y = y0[i] + k2y[i]*dt/2;
+    p.vx = vx0[i] + k2vx[i]*dt/2;
+    p.vy = vy0[i] + k2vy[i]*dt/2;
+  }
+  forceStats = computeForcesUnified(particles, ctrl);
+  for(let i=0;i<N;i++){
+    const p = particles[i];
+    k3x[i] = p.vx;
+    k3y[i] = p.vy;
+    k3vx[i] = p.ax - drag * p.vx;
+    k3vy[i] = p.ay - drag * p.vy;
+  }
+  // Stage 4
+  for(let i=0;i<N;i++){
+    const p = particles[i];
+    p.x = x0[i] + k3x[i]*dt;
+    p.y = y0[i] + k3y[i]*dt;
+    p.vx = vx0[i] + k3vx[i]*dt;
+    p.vy = vy0[i] + k3vy[i]*dt;
+  }
+  forceStats = computeForcesUnified(particles, ctrl); // final accelerations reflect last stage
+  for(let i=0;i<N;i++){
+    const p = particles[i];
+    k4x[i] = p.vx;
+    k4y[i] = p.vy;
+    k4vx[i] = p.ax - drag * p.vx;
+    k4vy[i] = p.ay - drag * p.vy;
+  }
+  // Combine
+  for(let i=0;i<N;i++){
+    const p = particles[i];
+    p.x = x0[i] + dt/6*(k1x[i] + 2*k2x[i] + 2*k3x[i] + k4x[i]);
+    p.y = y0[i] + dt/6*(k1y[i] + 2*k2y[i] + 2*k3y[i] + k4y[i]);
+    p.vx = vx0[i] + dt/6*(k1vx[i] + 2*k2vx[i] + 2*k3vx[i] + k4vx[i]);
+    p.vy = vy0[i] + dt/6*(k1vy[i] + 2*k2vy[i] + 2*k3vy[i] + k4vy[i]);
+    clampVelocity(p);
+  }
+  // After integration, accelerations currently correspond to stage 4; leave them for stats display.
+  return forceStats;
+}
+
+// Velocity Verlet integrator (symplectic, 2 force evaluations per step, but we reuse previous accel so only 1 new force eval). Air friction applied as simple velocity damping after full step.
+let verletInitialized = false; // when switching to verlet we need an initial force evaluation
+function integrateVerlet(particles, dt, ctrl){
+  const drag = ctrl.airFriction;
+  const maxMag = ctrl.maxSpeedComp;
+  // On first call ensure accelerations are present
+  if(!verletInitialized){
+    computeForcesUnified(particles, ctrl);
+    verletInitialized = true;
+  }
+  // First half: update positions using current velocities and accelerations
+  for(const p of particles){
+    p.x += p.vx * dt + 0.5 * p.ax * dt * dt;
+    p.y += p.vy * dt + 0.5 * p.ay * dt * dt;
+    // store old acceleration in temp properties
+    p._axOld = p.ax;
+    p._ayOld = p.ay;
+  }
+  // Compute new accelerations at updated positions
+  const forceStats = computeForcesUnified(particles, ctrl);
+  // Second half: update velocities using average acceleration, then apply drag and clamp
+  for(const p of particles){
+    p.vx += 0.5 * (p._axOld + p.ax) * dt;
+    p.vy += 0.5 * (p._ayOld + p.ay) * dt;
+    // linear drag (explicit Euler application of dv/dt = -drag v)
+    const damp = 1 - drag * dt;
+    p.vx *= damp;
+    p.vy *= damp;
+    if(maxMag > 0){
+      const s = Math.hypot(p.vx, p.vy);
+      if(s > maxMag){ const sc = maxMag / s; p.vx *= sc; p.vy *= sc; p._clampedV=true; } else p._clampedV=false;
+    } else if(maxMag === 0){
+      p.vx = 0; p.vy = 0; p._clampedV=true;
+    }
+  }
+  return forceStats;
+}
+
+// Heuristic suggested step density (steps per sim second) based on max velocity/acceleration
+function estimateSuggestedStepsPerSimSecond(particles, ctrl){
+  let maxV = 0, maxA = 0;
+  for(const p of particles){
+    const vmag = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+    if(vmag > maxV) maxV = vmag;
+    const amag = Math.sqrt(p.ax*p.ax + p.ay*p.ay);
+    if(amag > maxA) maxA = amag;
+  }
+  const sigma = ctrl.LJ_sigma || 10;
+  const maxDispTarget = Math.max(2, sigma * 0.25); // desired max displacement per micro-step
+  const fallbackDt = 0.0167;
+  const dtVel = maxV > 1e-9 ? maxDispTarget / maxV : fallbackDt;
+  const dtAcc = maxA > 1e-9 ? Math.sqrt(2 * maxDispTarget / maxA) : fallbackDt;
+  const dt = Math.max(1e-9, Math.min(dtVel, dtAcc));
+  return 1/dt;
+}
+
+
+/* Walls */
+function handleWalls(particles, ctrl){
+  const W = ctrl.canvasW, H = ctrl.canvasH;
+  for(const p of particles){
+    // left / right
+    if(p.x < 0){
+      p.x = 0;
+      p.vx = -p.vx * ctrl.wallBounce + (Math.random()*2-1)*ctrl.wallJitter;
+    } else if(p.x > W){
+      p.x = W;
+      p.vx = -p.vx * ctrl.wallBounce + (Math.random()*2-1)*ctrl.wallJitter;
+    }
+    if(p.y < 0){
+      p.y = 0;
+      p.vy = -p.vy * ctrl.wallBounce + (Math.random()*2-1)*ctrl.wallJitter;
+    } else if(p.y > H){
+      p.y = H;
+      p.vy = -p.vy * ctrl.wallBounce + (Math.random()*2-1)*ctrl.wallJitter;
+    }
+  }
+}
+
+/* Stats */
+function computeStats(particles, LJstats, dt, fpsMeasured, ctrl){
+  const N = particles.length;
+  let KE = 0, maxV = 0, sumAx=0,sumAy=0,sumA=0, maxA = 0;
+  let meanLJatt=0, meanLJrep=0;
+  let accelClampedCount = 0, velClampedCount = 0;
+  // Potential energy accumulators
+  let PE = 0;
+  const useMie = mieCache.valid;
+  // Precompute Mie components for PE if enabled
+  let A,B,C,sigma,mExp,nExp,sig_m,sig_n;
+  if(useMie){
+    ({A,B,C,sigma,mExp,nExp} = mieCache);
+    sig_m = Math.pow(sigma, mExp);
+    sig_n = Math.pow(sigma, nExp);
+  }
+  for(const p of particles){
+    const v2 = p.vx*p.vx + p.vy*p.vy;
+    KE += 0.5 * p.m * v2;
+    const vmag = Math.sqrt(v2);
+    maxV = Math.max(maxV, vmag);
+    sumAx += p.ax; sumAy += p.ay;
+  const amag = Math.sqrt(p.ax*p.ax + p.ay*p.ay);
+  sumA += amag;
+  if(amag > maxA) maxA = amag;
+    meanLJatt += p.ljAt || 0;
+    meanLJrep += p.ljRep || 0;
+    if(p._clampedA) accelClampedCount++;
+    if(p._clampedV) velClampedCount++;
+  }
+  // Pair potentials
+  if(useMie){
+    for(let i=0;i<N;i++){
+      const pi = particles[i];
+      for(let j=i+1;j<N;j++){
+        const pj = particles[j];
+        const dx = pj.x - pi.x;
+        const dy = pj.y - pi.y;
+        const r2 = dx*dx + dy*dy;
+        const r = Math.sqrt(r2) + 1e-9;
+        if(useMie){
+          // Correct generalized Mie potential with σ as equilibrium distance:
+          // U(r) = ε * [ (m/(m-n)) * (σ/r)^n - (n/(m-n)) * (σ/r)^m ]
+          const termN = (mExp/(mExp - nExp)) * (sig_n / Math.pow(r, nExp));
+          const termM = (nExp/(mExp - nExp)) * (sig_m / Math.pow(r, mExp));
+          const U = mieCache.eps * (termN - termM);
+          PE += U;
+        }
+      }
+    }
+  }
+  const meanAx = sumAx / N, meanAy = sumAy / N, meanA = sumA / N; // meanA kept for other uses if needed
+  meanLJatt = meanLJatt / N;
+  meanLJrep = meanLJrep / N;
+  const temp = KE / Math.max(1, N);
+  const TE = KE + PE;
+  const pctAClamp = N>0 ? (accelClampedCount / N * 100) : 0;
+  const pctVClamp = N>0 ? (velClampedCount / N * 100) : 0;
+  return { KE, PE, TE, maxV, meanAx, meanAy, meanA, maxA, temp, meanLJatt, meanLJrep, fpsMeasured, pctAClamp, pctVClamp };
+}
+
+/* Draw */
+function draw(particles, ctrl){
+  const W = ctrl.canvasW, H = ctrl.canvasH;
+  // keep canvas size in pixels
+  canvas.width = W;
+  canvas.height = H;
+  // scale to client
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  // background depends on dark mode toggle (black in dark, white in light)
+  ctx.fillStyle = isDarkMode ? '#000' : '#fff';
+  ctx.fillRect(0,0,W,H);
+  // draw particles inverted color (white in dark, black in light)
+  const baseRGB = isDarkMode ? '255,255,255' : '0,0,0';
+  const r = ctrl.particleDisplaySize;
+  const maxSpeed = ctrl.maxSpeedComp || 1e9; // safeguard
+  for(const p of particles){
+    const speed = Math.hypot(p.vx, p.vy);
+    const isMax = speed >= maxSpeed * 0.999; // near or at clamp
+    if(p._clampedA){
+      ctx.fillStyle = 'rgba(255,0,0,' + ctrl.particleAlpha + ')';
+    } else if(isMax){
+      ctx.fillStyle = 'rgba(255,255,0,' + (ctrl.particleAlpha*0.9) + ')';
+    } else {
+      ctx.fillStyle = 'rgba(' + baseRGB + ',' + ctrl.particleAlpha + ')';
+    }
+    ctx.fillRect(p.x - r/2, p.y - r/2, r, r);
+    if(isMax){
+      // yellow glow via stroke (single pass for performance)
+      ctx.strokeStyle = 'rgba(255,255,0,0.6)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.x - r/2 -1, p.y - r/2 -1, r+2, r+2);
+    }
+  }
+}
+
+/* Simulation + Render Loops (CPU-limited steps; render fixed 20 FPS unless step throughput lower) */
+let simulationPaused = false;
+let autoPaused = false; // distinguishes auto pause from future manual pause control
+let lastRealTime = performance.now(); // for hidden tab dt capping
+const MAX_FRAME_DT = 0.5; // cap any single integration dt (sim seconds) to avoid explosion after tab inactive
+let simTimer = null;
+let renderTimer = null;
+let desiredTimeScale = 1; // sim s per real s (Time Scale control)
+let stepDt = 1/60; // adaptive simulation dt (sim seconds per step)
+// Step rate measurement window
+let stepCountWindow = 0;
+let windowStart = performance.now();
+const ADJUST_MS = 500; // adjust dt twice per second
+let windowSimTimeAccum = 0; // total simulated seconds advanced in current window
+// Render scheduling
+const BASE_RENDER_FPS = 20;
+const BASE_RENDER_INTERVAL_MS = 1000/BASE_RENDER_FPS;
+let currentRenderIntervalMs = BASE_RENDER_INTERVAL_MS;
+let lastRenderTime = performance.now();
+
+function adjustTiming(now){
+  const elapsed = now - windowStart;
+  if(elapsed < ADJUST_MS) return;
+  const stepsPerRealSecond = stepCountWindow / (elapsed/1000);
+  state.stepsPerRealSecond = stepsPerRealSecond;
+  // Effective time scale based on actual simulated time advanced
+  const effectiveScale = windowSimTimeAccum / (elapsed/1000);
+  state.effectiveScale = effectiveScale;
+  // Recalculate stepDt so that stepsPerRealSecond * stepDt ≈ desiredTimeScale
+  if(stepsPerRealSecond > 0){
+    const targetDt = desiredTimeScale / stepsPerRealSecond;
+    // Clamp to avoid extreme instability
+    const maxDt = desiredTimeScale / 5;      // at least 5 steps per sim second
+    const minDt = desiredTimeScale / 20000;  // at most 20k steps per sim second
+    stepDt = clamp(targetDt, minDt, maxDt);
+    // Update lastStepDt immediately so UI reflects new theoretical step size
+    state.lastStepDt = stepDt;
+  }
+  // Adjust render cadence: fixed 20 FPS baseline; if step throughput lower, match it.
+  const stepRate = state.stepsPerRealSecond || 0;
+  const desiredRenderInterval = (stepRate > 0 && stepRate < BASE_RENDER_FPS)
+    ? (1000/stepRate)
+    : BASE_RENDER_INTERVAL_MS;
+  if(Math.abs(desiredRenderInterval - currentRenderIntervalMs) > 5){
+    currentRenderIntervalMs = desiredRenderInterval;
+    restartRenderLoop();
+  }
+  // reset window
+  windowStart = now;
+  stepCountWindow = 0;
+  windowSimTimeAccum = 0;
+}
+
+function simulationLoop(){
+  if(simulationPaused) return;
+  const now = performance.now();
+  const ctrl = currentCtrl;
+  // If tab was hidden, elapsed real time could be large; clamp effective dt advancement to avoid instability
+  const realElapsedMs = now - lastRealTime;
+  lastRealTime = now;
+  // If realElapsedMs is huge (tab inactive), we distribute into multiple small simulation steps instead of one giant step.
+  // Convert real time to intended sim time span using desiredTimeScale ratio
+  const desiredSimAdvance = (realElapsedMs/1000) * (desiredTimeScale || 1);
+  const maxSubStep = Math.min(stepDt, MAX_FRAME_DT);
+  let remaining = Math.min(desiredSimAdvance, MAX_FRAME_DT); // hard cap to avoid spiraling catch-up
+  // Always do at least one step (original stepDt) if remaining very tiny
+  if(remaining < stepDt*0.25) remaining = stepDt;
+  while(remaining > 1e-9){
+    const dtUse = Math.min(stepDt, remaining);
+    // Single simulation sub-step using selected integrator
+    let forceStats;
+    if(ctrl.integrator === 'rk4'){
+      forceStats = integrateRK4(state.particles, dtUse, ctrl);
+    } else if(ctrl.integrator === 'verlet') {
+      forceStats = integrateVerlet(state.particles, dtUse, ctrl);
+    } else { // euler
+      forceStats = computeForcesUnified(state.particles, ctrl); // Euler needs forces first
+      integrateEuler(state.particles, dtUse, ctrl);
+    }
+    state.forceStats = forceStats;
+    handleWalls(state.particles, ctrl);
+    state.lastStepDt = dtUse;
+    stepCountWindow++;
+    windowSimTimeAccum += dtUse;
+    state.suggestedStepsPerSimSecond = estimateSuggestedStepsPerSimSecond(state.particles, ctrl);
+    remaining -= dtUse;
+  }
+  adjustTiming(now);
+  // Schedule next step ASAP (CPU constrained)
+  simTimer = setTimeout(simulationLoop, 0);
+}
+
+function renderLoop(){
+  if(simulationPaused) return;
+  const ctrl = currentCtrl;
+  draw(state.particles, ctrl);
+  const now = performance.now();
+  const interval = now - lastRenderTime;
+  lastRenderTime = now;
+  state.fpsMeasured = 1000 / Math.max(1, interval);
+  state.stats = computeStats(state.particles, {totalLJatt:0,totalLJrep:0}, state.lastStepDt, state.fpsMeasured, ctrl);
+}
+
+function restartRenderLoop(){
+  if(renderTimer) clearInterval(renderTimer);
+  renderTimer = setInterval(renderLoop, currentRenderIntervalMs);
+}
+
+function startLoops(){
+  simulationPaused = false;
+  if(simTimer) clearTimeout(simTimer);
+  if(renderTimer) clearInterval(renderTimer);
+  windowStart = performance.now();
+  lastRealTime = windowStart;
+  stepCountWindow = 0;
+  lastRenderTime = performance.now();
+  desiredTimeScale = currentCtrl.simSpeed || 1;
+  // initialize stepDt guess based on an assumed baseline CPU rate (e.g., 200 steps/s)
+  stepDt = desiredTimeScale / 200;
+  simTimer = setTimeout(simulationLoop, 0);
+  restartRenderLoop();
+}
+
+/* Global current control object */
+let currentCtrl = readControls();
+
+/* apply and restart */
+$('applyBtn').addEventListener('click', ()=>{
+  autoSetHybridNearFromSigma();
+  currentCtrl = readControls();
+  // reset verlet flag if integrator changed
+  // Always reset so next simulation step recomputes initial accelerations for Verlet
+  verletInitialized = false;
+  updateMieCache(currentCtrl);
+  // apply canvas size immediately (keeps particles)
+  canvas.width = currentCtrl.canvasW;
+  canvas.height = currentCtrl.canvasH;
+  canvas.style.width = currentCtrl.canvasW + 'px';
+  canvas.style.height = currentCtrl.canvasH + 'px';
+  // Update requested time scale and adjust stepDt immediately
+  desiredTimeScale = currentCtrl.simSpeed || 1;
+  const throughput = state.stepsPerRealSecond || 0;
+  if(throughput > 0){
+    const targetDt = desiredTimeScale / throughput;
+    const maxDt = desiredTimeScale / 5;
+    const minDt = desiredTimeScale / 20000;
+    stepDt = clamp(targetDt, minDt, maxDt);
+  } else {
+    // fallback guess
+    stepDt = desiredTimeScale / 200;
+  }
+});
+
+$('restartBtn').addEventListener('click', ()=>{
+  autoSetHybridNearFromSigma();
+  currentCtrl = readControls();
+  verletInitialized = false;
+  updateMieCache(currentCtrl);
+  state.particles = initParticles(currentCtrl.particleCount, currentCtrl.canvasW, currentCtrl.canvasH, currentCtrl.maxSpeedComp);
+  // reset timers
+  state.lastTimestamp = performance.now();
+  desiredTimeScale = currentCtrl.simSpeed || 1;
+  startLoops();
+});
+
+// Scenario system ----------------------------------------------------------
+const SCENARIOS = {
+  orbit_swirl: {
+    label: 'Orbit Swirl',
+  params: { N:1000, W:1200, H:800, simSpeed:30, maxForce:2, maxSpeed:5, airFriction:0.0001, gDown:0,
+    viscosity:0, eps:0.1, sigma:30, m:2, n:1, nearR:300, theta:0.8, alpha:0.2, size:10 },
+    init: swirlInit
+  },
+  classic_lj: {
+    label: 'Classic LJ',
+  params: { N:500, W:1000, H:700, simSpeed:6, maxForce:3, maxSpeed:12, airFriction:0.002, gDown:0,
+    viscosity:0, eps:1, sigma:20, m:12, n:6, nearR:null, theta:0.6, alpha:0.9, size:9 },
+    init: null
+  },
+  cold_crystal: {
+    label: 'Cold Crystal',
+  params: { N:500, W:1000, H:700, simSpeed:3, maxForce:2, maxSpeed:6, airFriction:0.02, gDown:0,
+    viscosity:0, eps:1.2, sigma:22, m:12, n:6, nearR:null, theta:0.6, alpha:0.9, size:9 },
+    init: coolInit
+  },
+  hot_gas: {
+    label: 'Hot Gas',
+  params: { N:500, W:1200, H:800, simSpeed:15, maxForce:2.5, maxSpeed:20, airFriction:0, gDown:0,
+    viscosity:0, eps:0.3, sigma:18, m:10, n:5, nearR:null, theta:0.7, alpha:0.6, size:9 },
+    init: hotInit
+  },
+  thin_ring: {
+    label: 'Thin Ring',
+  params: { N:600, W:1200, H:800, simSpeed:8, maxForce:2.5, maxSpeed:14, airFriction:0.001, gDown:0,
+    viscosity:0, eps:0.4, sigma:25, m:8, n:4, nearR:null, theta:0.75, alpha:0.85, size:9 },
+    init: ringInit
+  },
+  dense_core: {
+    label: 'Dense Core',
+  params: { N:700, W:1200, H:800, simSpeed:9, maxForce:3, maxSpeed:16, airFriction:0.005, gDown:0,
+    viscosity:0, eps:0.8, sigma:16, m:10, n:5, nearR:null, theta:0.7, alpha:0.85, size:9 },
+    init: denseCoreInit
+  },
+  crystal_core_1000_m2n1: {
+    label: 'Crystal Core 1000 m2n1',
+  params: { N:1000, W:1400, H:900, simSpeed:25, maxForce:2.2, maxSpeed:7, airFriction:0.002, gDown:0,
+    viscosity:0, eps:0.15, sigma:30, m:2, n:1, nearR:100, theta:0.78, alpha:0.25, size:8 },
+    init: crystalCoreLargeInit
+  },
+  grid_6x6: {
+    label: '6x6',
+  params: { N:36, W:500, H:500, simSpeed:1, maxForce:10, maxSpeed:10, airFriction:0.01, gDown:0,
+    viscosity:0, eps:10, sigma:100, m:2, n:1, nearR:null, theta:0.6, alpha:0.95, size:10 },
+  init: null
+  },
+  grid_9x13: {
+    label: '9x13',
+  params: { N:117, W:1200, H:800, simSpeed:1, maxForce:10, maxSpeed:10, airFriction:0.01, gDown:0,
+    viscosity:0, eps:10, sigma:100, m:2, n:1, nearR:null, theta:0.6, alpha:0.95, size:10 },
+    init: null
+  },
+  grid_9x13_2x: {
+    label: '9x13 2x',
+  params: { N:234, W:1200, H:800, simSpeed:1, maxForce:10, maxSpeed:10, airFriction:0.01, gDown:0,
+    viscosity:0, eps:10, sigma:100, m:2, n:1, nearR:300, theta:0.6, alpha:0.95, size:10 },
+    init: null
+  },
+  grid_9x13_3x: {
+    label: '9x13 3x',
+  params: { N:351, W:1200, H:800, simSpeed:1, maxForce:10, maxSpeed:10, airFriction:0.01, gDown:0,
+    viscosity:0, eps:1, sigma:100, m:2, n:1, nearR:300, theta:0.6, alpha:0.95, size:10 },
+    init: null
+  },
+  grid_9x13_8x: {
+    label: '9x13 8x',
+  params: { N:936, W:1200, H:800, simSpeed:1, maxForce:10, maxSpeed:10, airFriction:0.01, gDown:0,
+    viscosity:0, eps:0.1, sigma:100, m:2, n:1, nearR:300, theta:0.6, alpha:0.95, size:10 },
+    init: null
+  },
+  grid_12x16: {
+    label: '12x16',
+  params: { N:192, W:1500, H:1100, simSpeed:1, maxForce:10, maxSpeed:10, airFriction:0.01, gDown:0,
+    viscosity:0, eps:10, sigma:100, m:2, n:1, nearR:300, theta:0.6, alpha:0.95, size:10 },
+    init: null
+  },
+  grid_12x16_5x: {
+    label: '12x16 5x',
+  params: { N:960, W:1500, H:1100, simSpeed:1, maxForce:10, maxSpeed:10, airFriction:0.001, gDown:0,
+    viscosity:0, eps:0.03, sigma:100, m:2, n:1, nearR:300, theta:0.6, alpha:0.95, size:10 },
+    init: null
+  },
+  _1k: {
+    label: '1k',
+  params: { N:1000, W:8000, H:8000, simSpeed:10,
+    maxForce:1, maxSpeed:15, airFriction:0, viscosity:0.001, viscosityThreshold:2,
+    gDown:0, eps:0.2, sigma:250, m:2, n:1,
+    nearR:500, theta:0.6, alpha:0.1, size:30 },
+    init: null
+  },
+};
+
+// Helper tolerant to naming style differences: accepts base like 'canvasW' or 'canvasWn'
+function setVal(base, v){
+  const candidatesNum = [base+'N', base+'n', base+'NumN', base];
+  const candidatesRange = [base+'R', base+'r', base+'NumR'];
+  for(const id of candidatesNum){ const el=$(id); if(el) { el.value = v; break; } }
+  for(const id of candidatesRange){ const el=$(id); if(el) { el.value = v; break; } }
+}
+
+function applyScenario(key){
+  const sc = SCENARIOS[key]; if(!sc) return;
+  const p = sc.params;
+  setValKey('particleCount', p.N);
+  setValKey('canvasW', p.W);
+  setValKey('canvasH', p.H);
+  setVal('simSpeed', p.simSpeed);
+  setVal('maxForce', p.maxForce); setVal('maxSpeed', p.maxSpeed);
+  setVal('airFriction', p.airFriction); setVal('gDown', p.gDown);
+  // viscosity is now part of scenarios; default to 0 if omitted
+  setVal('viscosity', (p.viscosity !== undefined) ? p.viscosity : DEFAULTS.viscosity);
+  // viscosity threshold (|vrad| cutoff)
+  setVal('viscosityThreshold', (p.viscosityThreshold !== undefined) ? p.viscosityThreshold : DEFAULTS.viscosityThreshold);
+  setVal('LJeps', p.eps); setVal('LJsigma', p.sigma);
+  setVal('m', p.m); setVal('n', p.n);
+  setVal('hyTheta', p.theta);
+  setVal('particleAlpha', p.alpha); setVal('particleSize', p.size);
+  $('integrator').value = 'verlet';
+  $('forceMethod').value = 'hybrid';
+
+  currentCtrl = readControls();
+  autoSetHybridNearFromSigma(); // sets nearR = 3*sigma default
+  if(p.nearR){ setVal('hyNearR', p.nearR); }
+  else {
+    // keep whatever auto gave, but ensure both fields synced
+    const nr = $('hyNearRN').value; setVal('hyNearR', nr);
+  }
+  currentCtrl = readControls();
+  updateMieCache(currentCtrl);
+  // Apply canvas size immediately (was missing for scenario application)
+  canvas.width = currentCtrl.canvasW;
+  canvas.height = currentCtrl.canvasH;
+  canvas.style.width = currentCtrl.canvasW + 'px';
+  canvas.style.height = currentCtrl.canvasH + 'px';
+  state.particles = initParticles(currentCtrl.particleCount, currentCtrl.canvasW, currentCtrl.canvasH, currentCtrl.maxSpeedComp);
+  if(state.particles.length !== currentCtrl.particleCount){ console.warn('Particle count mismatch', currentCtrl.particleCount, state.particles.length); }
+  // custom initialization tweaks
+  if(sc.init) sc.init(state.particles, currentCtrl);
+  sanitizeParticles(state.particles);
+  // Debug: ensure grid scenario placed particles
+  if(key==='grid_6x6'){
+    console.log('grid_6x6 first particles:', state.particles.slice(0,6));
+    console.log('grid_6x6 ctrl:', currentCtrl);
+  }
+  // Immediate draw so user sees particles before next scheduled render
+  try { draw(state.particles, currentCtrl); } catch(e){ console.warn('Immediate draw failed', e); }
+  desiredTimeScale = currentCtrl.simSpeed || 1;
+  verletInitialized = false;
+  startLoops();
+}
+
+// Scenario specific initializers -------------------------------------------
+function centerCoords(ctrl){ return { cx: ctrl.canvasW/2, cy: ctrl.canvasH/2, minDim: Math.min(ctrl.canvasW, ctrl.canvasH) }; }
+
+function swirlInit(parts, ctrl){
+  const {cx, cy} = centerCoords(ctrl);
+  const swirl = 4; // tangential speed factor
+  for(const p of parts){
+    const dx = p.x - cx, dy = p.y - cy;
+    const r = Math.hypot(dx,dy)+1e-6;
+    // tangential unit ( -dy/r, dx/r )
+    const tvx = -dy/r, tvy = dx/r;
+    p.vx = tvx * swirl; p.vy = tvy * swirl;
+  }
+}
+function coolInit(parts){
+  for(const p of parts){ p.vx *= 0.2; p.vy *= 0.2; }
+}
+function hotInit(parts){
+  for(const p of parts){ p.vx *= 3; p.vy *= 3; }
+}
+function ringInit(parts, ctrl){
+  const {cx, cy, minDim} = centerCoords(ctrl);
+  const radius = 0.35 * minDim * 0.5;
+  const tangential = 6;
+  const N = parts.length;
+  for(let i=0;i<N;i++){
+    const a = (i/N)*Math.PI*2;
+    const jitter = (Math.random()-0.5)*0.02;
+    const ang = a + jitter;
+    const p = parts[i];
+    p.x = cx + Math.cos(ang)*radius;
+    p.y = cy + Math.sin(ang)*radius;
+    // tangent velocity
+    p.vx = -Math.sin(ang)*tangential;
+    p.vy =  Math.cos(ang)*tangential;
+  }
+}
+function denseCoreInit(parts, ctrl){
+  const {cx, cy, minDim} = centerCoords(ctrl);
+  const coreR = 0.08 * minDim;
+  const outerR = 0.45 * minDim;
+  const coreCount = Math.floor(parts.length*0.6);
+  for(let i=0;i<parts.length;i++){
+    const p = parts[i];
+    const rTarget = i < coreCount ? coreR*Math.sqrt(Math.random()) : coreR + (outerR-coreR)*Math.sqrt(Math.random());
+    const ang = Math.random()*Math.PI*2;
+    p.x = cx + Math.cos(ang)*rTarget;
+    p.y = cy + Math.sin(ang)*rTarget;
+    // small randomized velocities, slight swirl outer shell
+    const baseV = i < coreCount ? 1 : 5;
+    p.vx = (Math.random()-0.5)*baseV;
+    p.vy = (Math.random()-0.5)*baseV;
+  }
+}
+
+function crystalCoreInit(parts, ctrl){
+  // Arrange ~100 particles in a hex-like grid centered, low velocities for stability
+  const {cx, cy} = centerCoords(ctrl);
+  const spacing = ctrl.LJsigma * 0.95; // slightly less than equilibrium to bind
+  const cols = Math.ceil(Math.sqrt(parts.length));
+  const rows = Math.ceil(parts.length / cols);
+  const offsetX = cx - (cols-1)*spacing/2;
+  const offsetY = cy - (rows-1)*spacing/2;
+  let idx = 0;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols && idx<parts.length;c++){
+      const p = parts[idx++];
+      const x = offsetX + c*spacing + (r%2)*spacing*0.5; // simple stagger
+      const y = offsetY + r*spacing*0.9; // slightly compressed vertically
+      p.x = x; p.y = y;
+      p.vx = (Math.random()-0.5)*0.05; // near zero
+      p.vy = (Math.random()-0.5)*0.05;
+    }
+  }
+}
+
+function crystalCoreLargeInit(parts, ctrl){
+  // Large 1000 particle lattice with slight outward taper and mild rotation
+  const {cx, cy} = centerCoords(ctrl);
+  const spacing = ctrl.LJsigma * 0.9; // slightly tighter to encourage cohesion with shallow exponents
+  const cols = Math.ceil(Math.sqrt(parts.length*1.1)); // a bit wider grid
+  const rows = Math.ceil(parts.length / cols);
+  const offsetX = cx - (cols-1)*spacing/2;
+  const offsetY = cy - (rows-1)*spacing/2;
+  let idx = 0;
+  const swirl = 1.2;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols && idx<parts.length;c++){
+      const p = parts[idx++];
+      const x = offsetX + c*spacing + (r%2)*spacing*0.5;
+      const y = offsetY + r*spacing*0.88;
+      p.x = x; p.y = y;
+      // light swirl velocity
+      const dx = x - cx, dy = y - cy;
+      const rmag = Math.hypot(dx,dy)+1e-6;
+      p.vx = (-dy/rmag)*swirl * (rmag/ (cols*spacing*0.6));
+      p.vy = ( dx/rmag)*swirl * (rmag/ (cols*spacing*0.6));
+    }
+  }
+}
+
+function grid6Init(parts, ctrl){
+  // Arrange exactly 6x6 (36) particles centered in a square lattice
+  const {cx, cy} = centerCoords(ctrl);
+  const cols = 6, rows = 6;
+  const spacing = ctrl.LJsigma * 1.05; // slightly > equilibrium distance
+  const totalW = (cols-1)*spacing;
+  const totalH = (rows-1)*spacing;
+  let idx = 0;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      if(idx >= parts.length) return;
+      const p = parts[idx++];
+      p.x = cx - totalW/2 + c*spacing;
+      p.y = cy - totalH/2 + r*spacing;
+      p.vx = (Math.random()-0.5)*0.02; // tiny jitter
+      p.vy = (Math.random()-0.5)*0.02;
+    }
+  }
+}
+
+// Attach listeners
+document.querySelectorAll('.scenario-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> applyScenario(btn.getAttribute('data-scenario')));
+});
+
+/* initial setup */
+function start(){
+  currentCtrl = readControls();
+  autoSetHybridNearFromSigma();
+  currentCtrl = readControls(); // re-read after auto adjustment
+  verletInitialized = false;
+  updateMieCache(currentCtrl);
+  canvas.width = currentCtrl.canvasW;
+  canvas.height = currentCtrl.canvasH;
+  canvas.style.width = currentCtrl.canvasW + 'px';
+  canvas.style.height = currentCtrl.canvasH + 'px';
+  state.particles = initParticles(currentCtrl.particleCount, currentCtrl.canvasW, currentCtrl.canvasH, currentCtrl.maxSpeedComp);
+  state.lastTimestamp = performance.now();
+  startLoops();
+}
+start();
+
+// Full pause/resume helpers
+function pauseSimulation(isAuto=false){
+  if(simulationPaused) return;
+  simulationPaused = true;
+  if(simTimer) clearTimeout(simTimer);
+  if(renderTimer) clearInterval(renderTimer);
+  if(isAuto) autoPaused = true;
+}
+function resumeSimulation(isAuto=false){
+  if(!simulationPaused) return;
+  if(isAuto && !autoPaused) return; // don't resume an auto pause if user manually paused (future-proof)
+  simulationPaused = false;
+  autoPaused = false;
+  // reset timing windows but keep stepDt (so integration cadence continues smoothly)
+  windowStart = performance.now();
+  lastRealTime = windowStart;
+  stepCountWindow = 0;
+  windowSimTimeAccum = 0;
+  simTimer = setTimeout(simulationLoop, 0);
+  restartRenderLoop();
+}
+
+// Auto pause when tab hidden, resume when visible
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden'){
+    pauseSimulation(true);
+  } else {
+    resumeSimulation(true);
+  }
+});
+window.addEventListener('blur', ()=>{ pauseSimulation(true); });
+window.addEventListener('focus', ()=>{ resumeSimulation(true); });
+
+/* Display updater (3x per sec) */
+setInterval(()=>{
+  const s = state.stats || {};
+  $('dispTemp').textContent = (s.temp||0).toFixed(3);
+  $('dispKE').textContent = (s.KE||0).toFixed(3);
+  $('dispPE').textContent = (s.PE||0).toFixed(3);
+  $('dispTE').textContent = (s.TE||0).toFixed(3);
+  $('dispAx').textContent = (s.meanAx||0).toFixed(3);
+  $('dispAy').textContent = (s.meanAy||0).toFixed(3);
+  $('dispAavg').textContent = (s.maxA||0).toFixed(3);
+  $('dispMaxV').textContent = (s.maxV||0).toFixed(3);
+  $('dispLJatt').textContent = (s.meanLJatt||0).toFixed(3);
+  $('dispLJrep').textContent = (s.meanLJrep||0).toFixed(3);
+  $('dispFPS').textContent = (s.fpsMeasured||0).toFixed(1);
+  $('dispStepHz').textContent = state.lastStepDt ? (1/state.lastStepDt).toFixed(3) : '0.0';
+  $('dispStepsReal').textContent = (state.stepsPerRealSecond||0).toFixed(3);
+  $('dispScaleReq').textContent = (typeof desiredTimeScale==='number'?desiredTimeScale:0).toFixed(3);
+  const effScale = state.effectiveScale || ((state.stepsPerRealSecond||0)*(state.lastStepDt||0));
+  $('dispScaleEff').textContent = effScale.toFixed(3);
+  $('dispSugSteps').textContent = (state.suggestedStepsPerSimSecond||0).toFixed(3);
+  const fs = state.forceStats || {};
+  $('dispLJSkip').textContent = (fs.ljSkipPct!=null ? fs.ljSkipPct : 0).toFixed(3);
+  $('dispLJPairs').textContent = fs.ljPairsComputed!=null ? fs.ljPairsComputed : 0;
+  $('dispPctAClamp').textContent = (s.pctAClamp||0).toFixed(2);
+  $('dispPctVClamp').textContent = (s.pctVClamp||0).toFixed(2);
+}, 333);
+
+/* Keyboard: space to pause/resume */
+let paused=false;
+window.addEventListener('keydown', (e)=>{
+  if(e.code === 'Space'){
+    e.preventDefault();
+    paused = !paused;
+    if(paused){
+      simulationPaused = true;
+      if(simTimer) clearTimeout(simTimer);
+      if(renderTimer) clearInterval(renderTimer);
+    } else {
+      state.lastTimestamp = performance.now();
+      startLoops();
+    }
+  }
+});
+
+/* Sync initial size values display */
+(function attachResizeFromRangeToNumber(){
+  // sets value of number when range moved and vice versa already done.
+})();
+
+/* init sliders with their initial onchange values (already handled by syncPair) */
+
+/* ensure UI updates when window resizes - not required */
+window.addEventListener('resize', ()=>{ /* no-op */ });
+
+</script>
+</body>
+</html>
